@@ -18,7 +18,7 @@ Verificar versiones:
 - npm -v
 
 ## clona el repositorio:
---   git clone https://github.com/TU_USUARIO/SIGEDOC.git
+--   git clone https://github.com/IAmNobody123/SIGEDOC.git
 
 ## entra al proyecto 
 
