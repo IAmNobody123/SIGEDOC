@@ -13,16 +13,9 @@ API del sistema SIGEDOC desarrollada con Node.js y Express.
 
 ---
 
-## Instalación
-
-Clonar repositorio:
-
-```bash
-git clone https://github.com/TU_USUARIO/SIGEDOC.git
-```
-
 ## Entrar al backend:
-
+-- !!!!!!!!!!!!!!!!ABRIR UNA NUEVA PESTAÑA EN EL TERMINAL !!!!!!!!!!!!!!!!!
+-- ingresar al servidor
 -  cd SIGEDOC/server
 -  
 ## Instalar dependencias:
@@ -30,11 +23,13 @@ git clone https://github.com/TU_USUARIO/SIGEDOC.git
 -  npm install
 ## Cambiar las variables de entorno de .env
 
--  PORT=3000
--  DB_HOST=localhost
--  DB_USER=root
--  DB_PASSWORD=password
--  DB_NAME=sigedoc
+-    PORT=5000
+-    DB_USER=postgres
+-    DB_PASSWORD=12345
+-    DB_HOST=localhost
+-    DB_PORT=5434
+-    DB_NAME=SIGEDOC
+-    JWT_SECRET=OGAT
 
 ## Ejecutar el servidor
 
