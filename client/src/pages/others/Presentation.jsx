@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, LogIn, Building2, Users, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LogIn, Building2,  } from 'lucide-react';
 import './Presentation.css';
 
 // Import images

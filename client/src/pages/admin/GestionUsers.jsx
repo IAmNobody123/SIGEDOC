@@ -8,17 +8,23 @@ export default function GestionUsers() {
     const [userToEdit, setUserToEdit] = useState(null)
     const API_URL = (import.meta.env.VITE_BACKEND_URL_GENERAL || "http://localhost:5000").trim();
 
+    
+
+    useEffect(() => {
+        async function listUsers() {
+            const res = await fetchUsers();
+            if (res.success) {
+                setUsers(res.data);
+            }
+        }
+        listUsers();
+    }, []);
     const listUsers = async () => {
         const res = await fetchUsers();
         if (res.success) {
             setUsers(res.data);
         }
     };
-
-    useEffect(() => {
-        listUsers();
-    }, []);
-
     const handleDelete = async (id) => {
         if (window.confirm("¿Está seguro de eliminar este usuario?")) {
             const res = await deleteUser(id);

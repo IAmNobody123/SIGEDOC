@@ -133,11 +133,23 @@ const getUnidades = async (req, res) => {
     }
 };
 
+const getUserStats = async (req, res) => {
+    try {
+        const query = "SELECT COUNT(*) as total FROM usuarios";
+        const result = await pool.query(query);
+        res.json({ total_usuarios: parseInt(result.rows[0].total) });
+    } catch (error) {
+        console.error("Error al obtener estadísticas de usuarios:", error);
+        res.status(500).json({ error: "Error al obtener estadísticas de usuarios" });
+    }
+};
+
 module.exports = {
     getUsers,
     createUser,
     updateUser,
     deleteUser,
     getRoles,
-    getUnidades
+    getUnidades,
+    getUserStats
 };

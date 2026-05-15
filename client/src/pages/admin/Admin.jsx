@@ -6,11 +6,13 @@ import './Admin.css';
 import Dashboard from './Dashboard';
 import GestionUsers from './GestionUsers';
 import Documents from './Documents';
+import { fetchNotifications } from '../../conection/documents';
 
 export default function Admin() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [notifications, setNotifications] = useState([]);
+  const [toastNotifications, setToastNotifications] = useState([]);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
 
@@ -23,15 +25,33 @@ export default function Admin() {
     const backendUrl = import.meta.env.VITE_BACKEND_URL_GENERAL || 'http://localhost:5000';
     const socket = io(backendUrl);
 
-    socket.on('documento_creado', (data) => {
-        setNotifications(prev => [data, ...prev]);
-        setTimeout(() => {
-            setNotifications(prev => prev.filter(n => n.id_documento !== data.id_documento));
-        }, 5000);
-    });
+    const handleSocketNotification = (data) => {
+      const toast = {
+        ...data,
+        toastId: `${data.id_documento || 'notif'}-${Date.now()}`,
+      };
+      setToastNotifications((prev) => [toast, ...prev]);
+
+      setTimeout(() => {
+        setToastNotifications((prev) => prev.filter((n) => n.toastId !== toast.toastId));
+      }, 10000);
+    };
+
+    socket.on('documento_creado', handleSocketNotification);
+    socket.on('documento_designado', handleSocketNotification);
+
+    const loadNotifications = async () => {
+      const res = await fetchNotifications();
+      if (res.success) {
+        setNotifications(res.data);
+      }
+    };
+    loadNotifications();
 
     return () => {
-        socket.disconnect();
+      socket.off('documento_creado', handleSocketNotification);
+      socket.off('documento_designado', handleSocketNotification);
+      socket.disconnect();
     };
   }, [navigate]);
 
@@ -49,7 +69,7 @@ export default function Admin() {
       case 'dashboard':
         return (
           <div className="admin-content-panel slide-in">
-            <Dashboard />
+            <Dashboard notifications={notifications} />
           </div>
         );
       case 'users':
@@ -150,8 +170,8 @@ export default function Admin() {
 
       {/* Real-time Notifications */}
       <div style={{ position: 'fixed', top: '80px', right: '20px', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {notifications.map((notif, index) => (
-          <div key={`${notif.id_documento}-${index}`} className="slide-in" style={{
+        {toastNotifications.map((notif) => (
+          <div key={notif.toastId} className="slide-in" style={{
               background: '#3b82f6', 
               color: 'white', 
               padding: '16px', 
@@ -160,14 +180,33 @@ export default function Admin() {
               display: 'flex',
               alignItems: 'flex-start',
               gap: '12px',
-              minWidth: '250px'
+              minWidth: '250px',
+              position: 'relative'
           }}>
+            <button
+              onClick={() => setToastNotifications((prev) => prev.filter((item) => item.toastId !== notif.toastId))}
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                border: 'none',
+                background: 'transparent',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '16px',
+                padding: 0,
+              }}
+            >
+              ×
+            </button>
             <Bell size={24} />
             <div>
-              <strong style={{ display: 'block', marginBottom: '4px' }}>Nuevo Documento Ingresado</strong>
+              <strong style={{ display: 'block', marginBottom: '4px' }}>
+                {notif.mensaje || 'Nueva notificación'}
+              </strong>
               <div style={{ fontSize: '0.9rem' }}>
-                <span style={{ display: 'block' }}><strong>Asunto:</strong> {notif.nombre}</span>
-                <span style={{ display: 'block' }}><strong>Origen:</strong> {notif.descripcion_origen_externo}</span>
+                {notif.nombre && <span style={{ display: 'block' }}><strong>Asunto:</strong> {notif.nombre}</span>}
+                {notif.descripcion_origen_externo && <span style={{ display: 'block' }}><strong>Origen:</strong> {notif.descripcion_origen_externo}</span>}
               </div>
             </div>
           </div>

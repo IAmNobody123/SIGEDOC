@@ -1,25 +1,40 @@
-import { useState, useEffect } from 'react';
-import { Menu, X, LayoutDashboard, FilePlus, Bell, LogOut, Briefcase } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import './MesaPartes.css';
-import DashboardMesaPartes from './DashboardMesaPartes';
-import GestionDocumentos from './GestionDocumentos';
+import { useState, useEffect } from "react";
+import {
+  Menu,
+  X,
+  LayoutDashboard,
+  FilePlus,
+  Bell,
+  LogOut,
+  Briefcase,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import "./MesaPartes.css";
+import DashboardMesaPartes from "./DashboardMesaPartes";
+import GestionDocumentos from "./GestionDocumentos";
+import BandejaTramites from "./BandejaTramites";
 
 export default function MesaPartes() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState('documents');
+  const [activeTab, setActiveTab] = useState("documents");
   const navigate = useNavigate();
 
+  const user = JSON.parse(localStorage.getItem("user"));
+  const idUnidad = user ? user.id_unidad : null;
+  const idUsuario = user ? user.id : null;
+
+
+
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      navigate('/login', { replace: true });
+      navigate("/login", { replace: true });
     }
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login', { replace: true });
+    localStorage.removeItem("token");
+    navigate("/login", { replace: true });
   };
 
   const toggleSidebar = () => {
@@ -28,27 +43,45 @@ export default function MesaPartes() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard':
+      case "dashboard":
         return (
           <div className="mesapartes-content-panel slide-in">
             <DashboardMesaPartes />
           </div>
         );
-      case 'documents':
+      case "documents":
         return (
           <div className="mesapartes-content-panel slide-in">
             <GestionDocumentos />
           </div>
         );
-      case 'notifications':
+      case "notifications":
         return (
           <div className="mesapartes-content-panel slide-in">
             <h2>Notificaciones de Derivación</h2>
-            <p>Aquí recibirás alertas cuando un documento sea derivado a Mesa de Partes o haya cambios de estado importantes.</p>
+            <p>
+              Aquí recibirás alertas cuando un documento sea derivado
+              a Mesa de Partes o haya cambios de estado importantes.
+            </p>
             {/* Bandeja de notificaciones irá aquí */}
-            <div style={{ marginTop: '20px', padding: '20px', border: '1px dashed #ccc', borderRadius: '8px' }}>
-              <p><em>(Bandeja de notificaciones)</em></p>
+            <div
+              style={{
+                marginTop: "20px",
+                padding: "20px",
+                border: "1px dashed #ccc",
+                borderRadius: "8px",
+              }}
+            >
+              <p>
+                <em>(Bandeja de notificaciones)</em>
+              </p>
             </div>
+          </div>
+        );
+      case "bandeja":
+        return (
+          <div className="mesapartes-content-panel slide-in">
+            <BandejaTramites idUnidad={idUnidad} idUsuario={idUsuario} />
           </div>
         );
       default:
@@ -63,9 +96,13 @@ export default function MesaPartes() {
   return (
     <div className="mesapartes-layout">
       {/* Sidebar */}
-      <aside className={`mesapartes-sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
+      <aside
+        className={`mesapartes-sidebar ${isSidebarOpen ? "open" : "closed"}`}
+      >
         <div className="sidebar-header">
-          {isSidebarOpen && <span className="sidebar-title">SIGEDOC</span>}
+          {isSidebarOpen && (
+            <span className="sidebar-title">SIGEDOC</span>
+          )}
           <button className="toggle-btn" onClick={toggleSidebar}>
             {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -73,15 +110,33 @@ export default function MesaPartes() {
 
         <nav className="sidebar-nav">
           <ul>
-            <li className={activeTab === 'documents' ? 'active' : ''} onClick={() => setActiveTab('documents')}>
+            <li
+              className={activeTab === "documents" ? "active" : ""}
+              onClick={() => setActiveTab("documents")}
+            >
               <FilePlus size={20} />
-              {isSidebarOpen && <span>Gestion de  Documentos</span>}
+              {isSidebarOpen && <span>Gestion de Documentos</span>}
             </li>
-            <li className={activeTab === 'dashboard' ? 'active' : ''} onClick={() => setActiveTab('dashboard')}>
+            <li
+              className={activeTab === "dashboard" ? "active" : ""}
+              onClick={() => setActiveTab("dashboard")}
+            >
               <LayoutDashboard size={20} />
               {isSidebarOpen && <span>Dashboard</span>}
             </li>
-            <li className={activeTab === 'notifications' ? 'active' : ''} onClick={() => setActiveTab('notifications')}>
+            <li
+              className={activeTab === "bandeja" ? "active" : ""}
+              onClick={() => setActiveTab("bandeja")}
+            >
+              <Bell size={20} />
+              {isSidebarOpen && <span>Bandeja de Trámites</span>}
+            </li>
+            <li
+              className={
+                activeTab === "notifications" ? "active" : ""
+              }
+              onClick={() => setActiveTab("notifications")}
+            >
               <Bell size={20} />
               {isSidebarOpen && <span>Notificaciones</span>}
             </li>

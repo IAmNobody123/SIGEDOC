@@ -7,7 +7,8 @@ const {
     updateUser,
     deleteUser,
     getRoles,
-    getUnidades
+    getUnidades,
+    getUserStats
 } = require("../modules/user.controller");
 
 router.get("/", getUsers);
@@ -17,5 +18,6 @@ router.delete("/delete/:id", deleteUser);
 
 router.get("/roles", getRoles);
 router.get("/unidades", getUnidades);
+router.get("/stats/usuarios", getUserStats);
 
 module.exports = router;

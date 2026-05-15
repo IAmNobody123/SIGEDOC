@@ -124,9 +124,74 @@ const getPendingDocumentsByUnidad = async (req, res) => {
     }
 };
 
+const getUserDocumentHistory = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const query = `
+            SELECT DISTINCT d.id_documento, d.nombre, d.fecha_creacion, d.estado_actual, d.externo,
+                   d.descripcion_origen_externo, t.nombre AS tipo_documento,
+                   u.nombre AS unidad_actual_nombre, us.nombre AS creador_nombre, us.apellido AS creador_apellido
+            FROM documentos d
+            INNER JOIN movimientos_documento m ON d.id_documento = m.id_documento
+            LEFT JOIN tipos_documento t ON d.id_tipo = t.id_tipo
+            LEFT JOIN unidades u ON d.unidad_actual = u.id_unidad
+            LEFT JOIN usuarios us ON d.creado_por = us.id_usuario
+            WHERE m.enviado_por = $1 OR m.recibido_por = $1
+            ORDER BY d.fecha_creacion DESC
+        `;
+        const result = await pool.query(query, [id]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching user document history:', error);
+        res.status(500).json({ error: 'Error al obtener histórico de documentos' });
+    }
+};
+
+const getUserDocumentStats = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const query = `
+            SELECT 
+                COUNT(DISTINCT d.id_documento) AS total_documentos,
+                COUNT(DISTINCT CASE WHEN LOWER(d.estado_actual) = 'finalizado' THEN d.id_documento END) AS documentos_finalizados,
+                COUNT(DISTINCT CASE WHEN LOWER(d.estado_actual) <> 'finalizado' THEN d.id_documento END) AS documentos_pendientes
+            FROM documentos d
+            INNER JOIN movimientos_documento m ON d.id_documento = m.id_documento
+            WHERE m.enviado_por = $1 OR m.recibido_por = $1
+        `;
+        const result = await pool.query(query, [id]);
+        res.json({
+            total_documentos: parseInt(result.rows[0].total_documentos, 10),
+            documentos_finalizados: parseInt(result.rows[0].documentos_finalizados, 10),
+            documentos_pendientes: parseInt(result.rows[0].documentos_pendientes, 10),
+        });
+    } catch (error) {
+        console.error('Error fetching user document statistics:', error);
+        res.status(500).json({ error: 'Error al obtener estadísticas de usuario' });
+    }
+};
+
+const getNotifications = async (req, res) => {
+    try {
+        const query = `
+            SELECT n.id_notificacion, n.id_usuario, n.mensaje, n.fecha, n.id_documento,
+                   d.nombre as documento_nombre
+            FROM notificaciones n
+            LEFT JOIN documentos d ON n.id_documento = d.id_documento
+            ORDER BY n.fecha DESC
+            LIMIT 20
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+        res.status(500).json({ error: 'Error al obtener notificaciones' });
+    }
+};
+
 const designarDocumento = async (req, res) => {
     const { id } = req.params;
-    const { unidad_destino, observaciones } = req.body;
+    const { unidad_destino, observaciones, id_usuario } = req.body;
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: "No autorizado" });
 
@@ -143,6 +208,9 @@ const designarDocumento = async (req, res) => {
 
     try {
         await pool.query('BEGIN');
+
+        const docInfo = await pool.query('SELECT nombre FROM documentos WHERE id_documento = $1', [id]);
+        const nombreDocumento = docInfo.rows.length > 0 ? docInfo.rows[0].nombre : `Documento ${id}`;
 
         const updateQuery = `
             UPDATE documentos
@@ -164,7 +232,29 @@ const designarDocumento = async (req, res) => {
             observaciones || ''
         ]);
 
+        const movQuery2 = `
+            INSERT INTO notificaciones (id_usuario, mensaje, fecha, id_documento)
+            VALUES ($1, $2, NOW(), $3)
+        `;
+        await pool.query(movQuery2, [
+            id_usuario,
+            'El documento ' + nombreDocumento + ' ha sido designado a la unidad ' + unidad_destino,
+            id,
+        ]);
+
         await pool.query('COMMIT');
+
+        if (req.io) {
+            req.io.emit('documento_designado', {
+                id_documento: id,
+                nombre: nombreDocumento,
+                unidad_destino,
+                enviado_por,
+                fecha: new Date().toISOString(),
+                mensaje: 'Documento designado a otra unidad'
+            });
+        }
+
         res.json({ success: true, message: 'Documento designado correctamente' });
     } catch (error) {
         await pool.query('ROLLBACK');
@@ -253,12 +343,34 @@ const getDocumentMovements = async (req, res) => {
     }
 };
 
+const getDocumentStats = async (req, res) => {
+    try {
+        const totalQuery = "SELECT COUNT(*) as total FROM documentos";
+        const finalizedQuery = "SELECT COUNT(*) as total FROM documentos WHERE LOWER(estado_actual) = 'finalizado'";
+
+        const totalResult = await pool.query(totalQuery);
+        const finalizedResult = await pool.query(finalizedQuery);
+
+        res.json({
+            total_documentos: parseInt(totalResult.rows[0].total),
+            documentos_finalizados: parseInt(finalizedResult.rows[0].total)
+        });
+    } catch (error) {
+        console.error("Error al obtener estadísticas de documentos:", error);
+        res.status(500).json({ error: "Error al obtener estadísticas de documentos" });
+    }
+};
+
 module.exports = {
     createExternalDocument,
     getTiposDocumento,
     getAllDocuments,
     getDocumentMovements,
     getPendingDocumentsByUnidad,
+    getUserDocumentHistory,
+    getUserDocumentStats,
     designarDocumento,
-    finalizarDocumento
+    finalizarDocumento,
+    getDocumentStats,
+    getNotifications
 };

@@ -101,7 +101,28 @@ const fetchPendingDocumentsByUnidad = async (unidadId) => {
     }
 };
 
-const designarDocument = async (idDocumento, unidadDestino, observaciones = "") => {
+const fetchUserDocumentHistory = async (usuarioId) => {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${BACKEND_URL}/usuario/${usuarioId}/historico`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return { success: true, data };
+        } else {
+            const errorData = await res.json();
+            return { success: false, error: errorData.error };
+        }
+    } catch (error) {
+        console.error("Error fetching user document history:", error);
+        return { success: false, error: "Error de conexión" };
+    }
+};
+
+const designarDocument = async (idUsuario, idDocumento, unidadDestino, observaciones = "") => {
     const token = localStorage.getItem('token');
     try {
         const res = await fetch(`${BACKEND_URL}/${idDocumento}/designar`, {
@@ -110,7 +131,7 @@ const designarDocument = async (idDocumento, unidadDestino, observaciones = "") 
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ unidad_destino: unidadDestino, observaciones })
+            body: JSON.stringify({ unidad_destino: unidadDestino, observaciones, id_usuario: idUsuario })
         });
         if (res.ok) {
             const data = await res.json();
@@ -149,4 +170,62 @@ const finalizarDocument = async (idDocumento, observaciones = "") => {
     }
 };
 
-export { fetchTiposDocumento, createExternalDocument, fetchAllDocuments, fetchDocumentMovements, fetchPendingDocumentsByUnidad, designarDocument, finalizarDocument };
+const fetchDocumentStats = async () => {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${BACKEND_URL}/stats/documentos`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return { success: true, data };
+        } else {
+            return { success: false };
+        }
+    } catch (error) {
+        console.error("Error fetching document stats:", error);
+        return { success: false, error: "Error de conexión" };
+    }
+};
+
+const fetchUserDocumentStats = async (usuarioId) => {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${BACKEND_URL}/usuario/${usuarioId}/estadisticas`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return { success: true, data };
+        }
+        return { success: false };
+    } catch (error) {
+        console.error("Error fetching user document stats:", error);
+        return { success: false, error: "Error de conexión" };
+    }
+};
+
+const fetchNotifications = async () => {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${BACKEND_URL}/notificaciones`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return { success: true, data };
+        }
+        return { success: false };
+    } catch (error) {
+        console.error("Error fetching notifications:", error);
+        return { success: false, error: "Error de conexión" };
+    }
+};
+
+export { fetchTiposDocumento, createExternalDocument, fetchAllDocuments, fetchDocumentMovements, fetchPendingDocumentsByUnidad, fetchUserDocumentHistory, fetchUserDocumentStats, designarDocument, finalizarDocument, fetchDocumentStats, fetchNotifications };

@@ -55,4 +55,18 @@ const deleteUser = async (id) => {
     }
 };
 
-export { fetchRoles, fetchUnidades, fetchUsers, deleteUser };
+const fetchUserStats = async () => {
+    try {
+        const response = await fetch(`${BACKEND_URL}/stats/usuarios`);
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data };
+        }
+        return { success: false };
+    } catch (error) {
+        console.error("Error fetching user stats:", error);
+        return { success: false };
+    }
+};
+
+export { fetchRoles, fetchUnidades, fetchUsers, deleteUser, fetchUserStats };

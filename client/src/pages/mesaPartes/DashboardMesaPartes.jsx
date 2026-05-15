@@ -1,7 +1,5 @@
-import { useNavigate } from 'react-router-dom';
 
 export default function DashboardMesaPartes() {
-    const navigate = useNavigate();
 
     return (
         <div>

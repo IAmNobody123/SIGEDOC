@@ -8,7 +8,7 @@ import {
 import { fetchUnidades } from "../../conection/user";
 import "./Tramites.css";
 
-function Tramites({ idUnidad }) {
+function Tramites({ idUsuario, idUnidad }) {
   const [tramites, setTramites] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
@@ -35,13 +35,6 @@ function Tramites({ idUnidad }) {
     }
     setLoading(false);
   };
-
-//   const loadUnidades = async () => {
-//     const res = await fetchUnidades();
-//     if (res.success) {
-//       setUnidades(res.data);
-//     }
-//   };
 
 useEffect(() => {
   if (!idUnidad) return;
@@ -121,6 +114,7 @@ useEffect(() => {
     setActionError("");
 
     const res = await designarDocument(
+      idUsuario,
       selectedDocumento.id_documento,
       selectedUnidadDestino,
       "Designado desde trámites"

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, LayoutDashboard, FileText, User as UserIcon, LogOut } from 'lucide-react';
+import { Menu, X, LayoutDashboard, FileText, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './User.css';
 import Tramites from './Tramites';
+import Historicos from './Historicos';
+import Dashboard from './Dashboard';
 
 export default function User() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -35,8 +37,7 @@ export default function User() {
       case 'dashboard':
         return (
           <div className="user-content-panel slide-in">
-            <h2>Panel de Usuario</h2>
-            <p>Bienvenido al portal del ciudadano de la municipalidad. Aquí verás el estado de tus trámites recientes.</p>
+            <Dashboard  idUsuario={idUsuario}/>
           </div>
         );
       case 'documents':
@@ -45,11 +46,11 @@ export default function User() {
             <Tramites idUsuario={idUsuario} idUnidad={idUnidad} />
           </div>
         );
-      case 'profile':
+      case 'historial':
         return (
           <div className="user-content-panel slide-in">
-            <h2>Mi Perfil</h2>
-            <p>Actualiza tus datos de contacto y contraseña.</p>
+            <h2>Historico de documentos con los que interactuaste</h2>
+            <Historicos idUsuario={idUsuario} />
           </div>
         );
       default:
@@ -82,9 +83,9 @@ export default function User() {
               <FileText size={20} />
               {isSidebarOpen && <span>Mis Trámites</span>}
             </li>
-            <li className={activeTab === 'profile' ? 'active' : ''} onClick={() => setActiveTab('profile')}>
-              <UserIcon size={20} />
-              {isSidebarOpen && <span>Mi Perfil</span>}
+            <li className={activeTab === 'historial' ? 'active' : ''} onClick={() => setActiveTab('historial')}>
+              <FileText size={20} />
+              {isSidebarOpen && <span>Histórico</span>}
             </li>
           </ul>
         </nav>
