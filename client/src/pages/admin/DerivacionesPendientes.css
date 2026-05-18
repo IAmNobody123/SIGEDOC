@@ -1,0 +1,379 @@
+.derivaciones-container {
+    padding: 2rem;
+    background: linear-gradient(135deg, #283cf1 0%, #0dff2d 100%);
+    min-height: 100vh;
+}
+
+.derivaciones-header {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.derivaciones-header h2 {
+    color: #333;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+}
+
+.derivaciones-header p {
+    color: #666;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.loading {
+    text-align: center;
+    color: white;
+    font-size: 1.1rem;
+    padding: 3rem;
+}
+
+.sin-derivaciones {
+    background: white;
+    border-radius: 8px;
+    padding: 3rem;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sin-derivaciones svg {
+    color: #ddd;
+    margin-bottom: 1rem;
+}
+
+.sin-derivaciones h3 {
+    color: #333;
+    margin: 1rem 0 0.5rem 0;
+}
+
+.sin-derivaciones p {
+    color: #999;
+    margin: 0;
+}
+
+.status-message {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+    animation: slideDown 0.3s ease-out;
+}
+
+.status-message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.status-message svg {
+    flex-shrink: 0;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.derivaciones-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+    gap: 1.5rem;
+}
+
+.derivacion-card {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.derivacion-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.derivacion-header-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.derivacion-info-principal {
+    flex: 1;
+}
+
+.derivacion-info-principal h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+}
+
+.documento-id {
+    margin: 0;
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.derivacion-fecha {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    white-space: nowrap;
+}
+
+.derivacion-detalles {
+    padding: 1.5rem;
+}
+
+.detalle {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.detalle:last-child {
+    margin-bottom: 0;
+}
+
+.detalle label {
+    font-weight: 600;
+    color: #555;
+    min-width: 140px;
+}
+
+.detalle span {
+    color: #333;
+    word-break: break-word;
+}
+
+.unidad-destino {
+    background: #e7f3ff;
+    color: #0066cc;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.descripcion-full {
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.descripcion-full span {
+    white-space: pre-wrap;
+}
+
+.derivacion-acciones {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: #f9f9f9;
+    border-top: 1px solid #eee;
+}
+
+.btn-aprobar,
+.btn-rechazar {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+}
+
+.btn-aprobar {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+}
+
+.btn-aprobar:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btn-rechazar {
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+    color: white;
+}
+
+.btn-rechazar:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.btn-aprobar:disabled,
+.btn-rechazar:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Modal Rechazo */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: modalAppear 0.3s ease-out;
+}
+
+@keyframes modalAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-content h3 {
+    margin: 0 0 1rem 0;
+    color: #333;
+    font-size: 1.3rem;
+}
+
+.modal-content p {
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #555;
+    font-weight: 600;
+}
+
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.modal-acciones {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.btn-cancelar,
+.btn-confirmar-rechazo {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-cancelar {
+    background: #e9ecef;
+    color: #333;
+}
+
+.btn-cancelar:hover {
+    background: #dee2e6;
+}
+
+.btn-confirmar-rechazo {
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+    color: white;
+}
+
+.btn-confirmar-rechazo:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .derivaciones-list {
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .derivaciones-container {
+        padding: 1rem;
+    }
+
+    .derivaciones-header {
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .derivaciones-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .derivaciones-list {
+        grid-template-columns: 1fr;
+    }
+
+    .derivacion-acciones {
+        flex-direction: column;
+    }
+
+    .btn-aprobar,
+    .btn-rechazar {
+        width: 100%;
+    }
+}

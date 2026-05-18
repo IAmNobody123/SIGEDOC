@@ -2,17 +2,18 @@ import { useState, useEffect } from "react";
 import {
   Menu,
   X,
-  LayoutDashboard,
+  // LayoutDashboard,
   FilePlus,
   Bell,
   LogOut,
-  Briefcase,
+  // Briefcase,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./MesaPartes.css";
-import DashboardMesaPartes from "./DashboardMesaPartes";
+// import DashboardMesaPartes from "./DashboardMesaPartes";
 import GestionDocumentos from "./GestionDocumentos";
 import BandejaTramites from "./BandejaTramites";
+import BandejaMovimientos from "./BandejaMovimientos";
 
 export default function MesaPartes() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -43,12 +44,12 @@ export default function MesaPartes() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "dashboard":
-        return (
-          <div className="mesapartes-content-panel slide-in">
-            <DashboardMesaPartes />
-          </div>
-        );
+      // case "dashboard":
+      //   return (
+      //     <div className="mesapartes-content-panel slide-in">
+      //       <DashboardMesaPartes />
+      //     </div>
+      //   );
       case "documents":
         return (
           <div className="mesapartes-content-panel slide-in">
@@ -58,24 +59,7 @@ export default function MesaPartes() {
       case "notifications":
         return (
           <div className="mesapartes-content-panel slide-in">
-            <h2>Notificaciones de Derivación</h2>
-            <p>
-              Aquí recibirás alertas cuando un documento sea derivado
-              a Mesa de Partes o haya cambios de estado importantes.
-            </p>
-            {/* Bandeja de notificaciones irá aquí */}
-            <div
-              style={{
-                marginTop: "20px",
-                padding: "20px",
-                border: "1px dashed #ccc",
-                borderRadius: "8px",
-              }}
-            >
-              <p>
-                <em>(Bandeja de notificaciones)</em>
-              </p>
-            </div>
+            <BandejaMovimientos idUnidad={idUnidad} idUsuario={idUsuario} />
           </div>
         );
       case "bandeja":
@@ -117,13 +101,13 @@ export default function MesaPartes() {
               <FilePlus size={20} />
               {isSidebarOpen && <span>Gestion de Documentos</span>}
             </li>
-            <li
+            {/* <li
               className={activeTab === "dashboard" ? "active" : ""}
               onClick={() => setActiveTab("dashboard")}
             >
               <LayoutDashboard size={20} />
               {isSidebarOpen && <span>Dashboard</span>}
-            </li>
+            </li> */}
             <li
               className={activeTab === "bandeja" ? "active" : ""}
               onClick={() => setActiveTab("bandeja")}
@@ -158,11 +142,16 @@ export default function MesaPartes() {
           <div className="topbar-spacer"></div>
           <div className="user-profile">
             <div className="user-info">
-              <span className="user-name">Encargado</span>
-              <span className="user-role">Mesa de Partes</span>
+              <span className="user-name">{user ? `${user.nombre} ${user.apellido}` : 'Usuario'}</span>
+              <span className="user-role">Encargado de Mesa de Partes</span>
             </div>
             <div className="avatar-circle">
-              <Briefcase size={24} />
+              {user && user.imagen ? (
+                <img src={user.imagen} alt="Avatar" />
+              ) : (
+                user?.nombre.charAt(0).toUpperCase() || 'U'
+              )}
+
             </div>
           </div>
         </header>
@@ -172,6 +161,6 @@ export default function MesaPartes() {
           {renderContent()}
         </div>
       </main>
-    </div>
+    </div >
   );
 }

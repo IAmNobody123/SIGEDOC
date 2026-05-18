@@ -21,7 +21,7 @@ const createExternalDocument = async (req, res) => {
     try {
         await pool.query('BEGIN');
 
-        // Insertar documento
+        // Insertar documento con estado Pendiente_Aprobacion_Admin
         const docQuery = `
             INSERT INTO documentos (nombre, fecha_creacion, creado_por, unidad_actual, estado_actual, externo, descripcion_origen_externo, id_tipo)
             VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7) RETURNING id_documento
@@ -29,8 +29,8 @@ const createExternalDocument = async (req, res) => {
         const docResult = await pool.query(docQuery, [
             nombre,
             creado_por,
-            unidad_destino,
-            'Derivado',
+            unidad_origen, // Mantener en mesa de partes hasta aprobación
+            'Pendiente_Aprobacion_Admin',
             true,
             descripcion_origen_externo,
             id_tipo
@@ -38,7 +38,7 @@ const createExternalDocument = async (req, res) => {
 
         const id_documento = docResult.rows[0].id_documento;
 
-        // Insertar movimiento
+        // Insertar movimiento con estado PENDIENTE_APROBACION
         const movQuery = `
             INSERT INTO movimientos_documento (id_documento, unidad_origen, unidad_destino, fecha_movimiento, enviado_por, estado, observaciones)
             VALUES ($1, $2, $3, NOW(), $4, $5, $6)
@@ -48,9 +48,34 @@ const createExternalDocument = async (req, res) => {
             unidad_origen,
             unidad_destino,
             creado_por,
-            'ENVIADO',
+            'PENDIENTE_APROBACION_ADMIN',
             observaciones
         ]);
+
+        // Obtener unidad destino nombre
+        const unidadDestQuery = 'SELECT nombre FROM unidades WHERE id_unidad = $1';
+        const unidadDestResult = await pool.query(unidadDestQuery, [unidad_destino]);
+        const unidadDestNombre = unidadDestResult.rows.length > 0 ? unidadDestResult.rows[0].nombre : `Unidad ${unidad_destino}`;
+
+        // Crear notificaciones para todos los admins
+        const adminsQuery = `
+            SELECT DISTINCT u.id_usuario 
+            FROM usuarios u
+            INNER JOIN roles r ON u.id_rol = r.id_rol
+            WHERE LOWER(r.nombre) = 'admin'
+        `;
+        const adminsResult = await pool.query(adminsQuery);
+
+        const notifQuery = `
+            INSERT INTO notificaciones (id_usuario, mensaje, fecha, id_documento)
+            VALUES ($1, $2, NOW(), $3)
+        `;
+
+        const mensaje = `Nuevo documento derivado a "${unidadDestNombre}" requiere aprobación. Documento: ${nombre}`;
+        
+        for (let admin of adminsResult.rows) {
+            await pool.query(notifQuery, [admin.id_usuario, mensaje, id_documento]);
+        }
 
         await pool.query('COMMIT');
 
@@ -61,11 +86,12 @@ const createExternalDocument = async (req, res) => {
                 descripcion_origen_externo: descripcion_origen_externo,
                 unidad_destino: unidad_destino,
                 creado_por: creado_por,
+                estado: 'Pendiente_Aprobacion_Admin',
                 fecha: new Date().toISOString()
             });
         }
 
-        res.status(201).json({ success: true, message: "Documento insertado y derivado correctamente", id_documento });
+        res.status(201).json({ success: true, message: "Documento registrado. Esperando aprobación del administrador.", id_documento });
     } catch (error) {
         await pool.query('ROLLBACK');
         console.error("Error al crear documento externo:", error);
@@ -113,7 +139,9 @@ const getPendingDocumentsByUnidad = async (req, res) => {
             LEFT JOIN tipos_documento t ON d.id_tipo = t.id_tipo
             LEFT JOIN unidades u ON d.unidad_actual = u.id_unidad
             LEFT JOIN usuarios us ON d.creado_por = us.id_usuario
-            WHERE d.unidad_actual = $1 AND LOWER(d.estado_actual) <> 'finalizado'
+            WHERE d.unidad_actual = $1 
+            AND LOWER(d.estado_actual) <> 'finalizado'
+            AND LOWER(d.estado_actual) <> 'pendiente_aprobacion_admin'
             ORDER BY d.fecha_creacion DESC
         `;
         const result = await pool.query(query, [id]);
@@ -221,9 +249,9 @@ const designarDocumento = async (req, res) => {
 
         const movQuery = `
             INSERT INTO movimientos_documento (id_documento, unidad_origen, unidad_destino, fecha_movimiento, enviado_por, estado, observaciones)
-            VALUES ($1, $2, $3, NOW(), $4, $5, $6)
+            VALUES ($1, $2, $3, NOW(), $4, $5, $6) RETURNING id_movimiento
         `;
-        await pool.query(movQuery, [
+        const movResult = await pool.query(movQuery, [
             id,
             unidad_origen,
             unidad_destino,
@@ -231,6 +259,8 @@ const designarDocumento = async (req, res) => {
             'ENVIADO',
             observaciones || ''
         ]);
+        
+        const id_movimiento = movResult.rows[0].id_movimiento;
 
         const movQuery2 = `
             INSERT INTO notificaciones (id_usuario, mensaje, fecha, id_documento)
@@ -242,16 +272,40 @@ const designarDocumento = async (req, res) => {
             id,
         ]);
 
+        // Obtener información de las unidades para emitir evento
+        const unidadesQuery = `
+            SELECT (SELECT nombre FROM unidades WHERE id_unidad = $1) as unidad_origen,
+                   (SELECT nombre FROM unidades WHERE id_unidad = $2) as unidad_destino
+        `;
+        const unidadesResult = await pool.query(unidadesQuery, [unidad_origen, unidad_destino]);
+        const unidadOrigenNombre = unidadesResult.rows[0].unidad_origen || `Unidad ${unidad_origen}`;
+        const unidadDestinoNombre = unidadesResult.rows[0].unidad_destino || `Unidad ${unidad_destino}`;
+
         await pool.query('COMMIT');
 
         if (req.io) {
             req.io.emit('documento_designado', {
+                id_movimiento: id_movimiento,
                 id_documento: id,
                 nombre: nombreDocumento,
-                unidad_destino,
-                enviado_por,
-                fecha: new Date().toISOString(),
-                mensaje: 'Documento designado a otra unidad'
+                unidad_origen: unidadOrigenNombre,
+                unidad_destino: unidadDestinoNombre,
+                estado: 'ENVIADO',
+                fecha_movimiento: new Date().toISOString(),
+                observaciones: observaciones || '',
+                mensaje: `Documento ${nombreDocumento} derivado de ${unidadOrigenNombre} a ${unidadDestinoNombre}`
+            });
+            
+            // Emitir evento para actualizar movimientos recientes
+            req.io.emit('nuevo_movimiento', {
+                id_movimiento: id_movimiento,
+                id_documento: id,
+                documento_nombre: nombreDocumento,
+                unidad_origen: unidadOrigenNombre,
+                unidad_destino: unidadDestinoNombre,
+                estado: 'ENVIADO',
+                fecha_movimiento: new Date().toISOString(),
+                observaciones: observaciones || ''
             });
         }
 
@@ -282,19 +336,20 @@ const finalizarDocumento = async (req, res) => {
     try {
         await pool.query('BEGIN');
 
-        const currentDoc = await pool.query('SELECT unidad_actual FROM documentos WHERE id_documento = $1', [id]);
+        const currentDoc = await pool.query('SELECT unidad_actual, nombre FROM documentos WHERE id_documento = $1', [id]);
         if (currentDoc.rows.length === 0) {
             await pool.query('ROLLBACK');
             return res.status(404).json({ error: 'Documento no encontrado' });
         }
 
         const unidadActual = currentDoc.rows[0].unidad_actual;
+        const nombreDocumento = currentDoc.rows[0].nombre;
 
         const movQuery = `
             INSERT INTO movimientos_documento (id_documento, unidad_origen, unidad_destino, fecha_movimiento, enviado_por, estado, observaciones)
-            VALUES ($1, $2, $3, NOW(), $4, $5, $6)
+            VALUES ($1, $2, $3, NOW(), $4, $5, $6) RETURNING id_movimiento
         `;
-        await pool.query(movQuery, [
+        const movResult = await pool.query(movQuery, [
             id,
             unidadActual,
             unidadActual,
@@ -302,6 +357,8 @@ const finalizarDocumento = async (req, res) => {
             'ATENDIDO',
             observaciones || ''
         ]);
+        
+        const id_movimiento = movResult.rows[0].id_movimiento;
 
         const updateQuery = `
             UPDATE documentos
@@ -310,7 +367,26 @@ const finalizarDocumento = async (req, res) => {
         `;
         await pool.query(updateQuery, [id]);
 
+        // Obtener información de la unidad para emitir evento
+        const unidadQuery = 'SELECT nombre FROM unidades WHERE id_unidad = $1';
+        const unidadResult = await pool.query(unidadQuery, [unidadActual]);
+        const unidadNombre = unidadResult.rows.length > 0 ? unidadResult.rows[0].nombre : `Unidad ${unidadActual}`;
+
         await pool.query('COMMIT');
+
+        if (req.io) {
+            req.io.emit('nuevo_movimiento', {
+                id_movimiento: id_movimiento,
+                id_documento: id,
+                documento_nombre: nombreDocumento,
+                unidad_origen: unidadNombre,
+                unidad_destino: unidadNombre,
+                estado: 'ATENDIDO',
+                fecha_movimiento: new Date().toISOString(),
+                observaciones: observaciones || ''
+            });
+        }
+
         res.json({ success: true, message: 'Documento finalizado correctamente' });
     } catch (error) {
         await pool.query('ROLLBACK');
@@ -361,6 +437,247 @@ const getDocumentStats = async (req, res) => {
     }
 };
 
+const aprobarDerivacion = async (req, res) => {
+    const { id } = req.params;
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "No autorizado" });
+
+    const token = authHeader.split(" ")[1];
+    let decoded;
+    try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+        return res.status(401).json({ error: "Token inválido" });
+    }
+
+    try {
+        await pool.query('BEGIN');
+
+        // Obtener información del documento y el movimiento pendiente
+        const docQuery = `
+            SELECT d.id_documento, d.nombre, m.unidad_destino
+            FROM documentos d
+            LEFT JOIN movimientos_documento m ON d.id_documento = m.id_documento
+            WHERE d.id_documento = $1 AND LOWER(d.estado_actual) = 'pendiente_aprobacion_admin'
+            LIMIT 1
+        `;
+        const docResult = await pool.query(docQuery, [id]);
+
+        if (docResult.rows.length === 0) {
+            await pool.query('ROLLBACK');
+            return res.status(404).json({ error: 'Documento no encontrado o no está en estado de aprobación' });
+        }
+
+        const { nombre, unidad_destino } = docResult.rows[0];
+
+        // Actualizar estado del documento a 'Derivado'
+        const updateDocQuery = `
+            UPDATE documentos
+            SET estado_actual = 'Derivado', unidad_actual = $1
+            WHERE id_documento = $2
+        `;
+        await pool.query(updateDocQuery, [unidad_destino, id]);
+
+        // Actualizar estado del movimiento
+        const updateMovQuery = `
+            UPDATE movimientos_documento
+            SET estado = 'ENVIADO'
+            WHERE id_documento = $1 AND estado = 'PENDIENTE_APROBACION_ADMIN'
+        `;
+        await pool.query(updateMovQuery, [id]);
+
+        // Crear notificación para el receptor en la unidad destino
+        const unidadDestQuery = 'SELECT nombre FROM unidades WHERE id_unidad = $1';
+        const unidadDestResult = await pool.query(unidadDestQuery, [unidad_destino]);
+        const unidadDestNombre = unidadDestResult.rows.length > 0 ? unidadDestResult.rows[0].nombre : `Unidad ${unidad_destino}`;
+
+        // Buscar usuarios de la unidad destino
+        const usuariosQuery = `
+            SELECT id_usuario FROM usuarios
+            WHERE id_unidad = $1
+        `;
+        const usuariosResult = await pool.query(usuariosQuery, [unidad_destino]);
+
+        const notifQuery = `
+            INSERT INTO notificaciones (id_usuario, mensaje, fecha, id_documento)
+            VALUES ($1, $2, NOW(), $3)
+        `;
+
+        const mensajeRecepcion = `Documento "${nombre}" ha sido derivado a su unidad. Acción requerida.`;
+
+        for (let usuario of usuariosResult.rows) {
+            await pool.query(notifQuery, [usuario.id_usuario, mensajeRecepcion, id]);
+        }
+
+        await pool.query('COMMIT');
+
+        if (req.io) {
+            req.io.emit('derivacion_aprobada', {
+                id_documento: id,
+                nombre: nombre,
+                unidad_destino: unidad_destino,
+                unidad_destino_nombre: unidadDestNombre,
+                fecha: new Date().toISOString()
+            });
+        }
+
+        res.json({ success: true, message: 'Derivación aprobada correctamente. Documento enviado a la unidad destino.' });
+    } catch (error) {
+        await pool.query('ROLLBACK');
+        console.error('Error al aprobar derivación:', error);
+        res.status(500).json({ error: 'Error al aprobar la derivación' });
+    }
+};
+
+const rechazarDerivacion = async (req, res) => {
+    const { id } = req.params;
+    const { razon } = req.body;
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "No autorizado" });
+
+    const token = authHeader.split(" ")[1];
+    let decoded;
+    try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+        return res.status(401).json({ error: "Token inválido" });
+    }
+
+    try {
+        await pool.query('BEGIN');
+
+        // Obtener información del documento
+        const docQuery = `
+            SELECT d.id_documento, d.nombre, d.creado_por, m.unidad_origen
+            FROM documentos d
+            LEFT JOIN movimientos_documento m ON d.id_documento = m.id_documento
+            WHERE d.id_documento = $1 AND LOWER(d.estado_actual) = 'pendiente_aprobacion_admin'
+            LIMIT 1
+        `;
+        const docResult = await pool.query(docQuery, [id]);
+
+        if (docResult.rows.length === 0) {
+            await pool.query('ROLLBACK');
+            return res.status(404).json({ error: 'Documento no encontrado o no está en estado de aprobación' });
+        }
+
+        const { nombre, creado_por, unidad_origen } = docResult.rows[0];
+
+        // Actualizar estado del documento a 'Rechazado'
+        const updateDocQuery = `
+            UPDATE documentos
+            SET estado_actual = 'Rechazado'
+            WHERE id_documento = $1
+        `;
+        await pool.query(updateDocQuery, [id]);
+
+        // Actualizar estado del movimiento
+        const updateMovQuery = `
+            UPDATE movimientos_documento
+            SET estado = 'RECHAZADO'
+            WHERE id_documento = $1 AND estado = 'PENDIENTE_APROBACION_ADMIN'
+        `;
+        await pool.query(updateMovQuery, [id]);
+
+        // Notificar a quien creó el documento
+        const notifQuery = `
+            INSERT INTO notificaciones (id_usuario, mensaje, fecha, id_documento)
+            VALUES ($1, $2, NOW(), $3)
+        `;
+
+        const mensajeRechazo = `Documento "${nombre}" ha sido rechazado. ${razon ? 'Razón: ' + razon : ''}`;
+        await pool.query(notifQuery, [creado_por, mensajeRechazo, id]);
+
+        await pool.query('COMMIT');
+
+        if (req.io) {
+            req.io.emit('derivacion_rechazada', {
+                id_documento: id,
+                nombre: nombre,
+                razon: razon,
+                fecha: new Date().toISOString()
+            });
+        }
+
+        res.json({ success: true, message: 'Derivación rechazada correctamente.' });
+    } catch (error) {
+        await pool.query('ROLLBACK');
+        console.error('Error al rechazar derivación:', error);
+        res.status(500).json({ error: 'Error al rechazar la derivación' });
+    }
+};
+
+const getDerivacionesPendientes = async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "No autorizado" });
+
+    const token = authHeader.split(" ")[1];
+    let decoded;
+    try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+        return res.status(401).json({ error: "Token inválido" });
+    }
+
+    try {
+        const query = `
+            SELECT d.id_documento, d.nombre, d.fecha_creacion, d.descripcion_origen_externo, d.externo,
+                   t.nombre as tipo_documento, u_origen.nombre as unidad_origen_nombre,
+                   u_destino.nombre as unidad_destino_nombre, m.unidad_destino,
+                   us.nombre as creador_nombre, us.apellido as creador_apellido, us.email as creador_email
+            FROM documentos d
+            LEFT JOIN movimientos_documento m ON d.id_documento = m.id_documento
+            LEFT JOIN tipos_documento t ON d.id_tipo = t.id_tipo
+            LEFT JOIN unidades u_origen ON d.unidad_actual = u_origen.id_unidad
+            LEFT JOIN unidades u_destino ON m.unidad_destino = u_destino.id_unidad
+            LEFT JOIN usuarios us ON d.creado_por = us.id_usuario
+            WHERE LOWER(d.estado_actual) = 'pendiente_aprobacion_admin'
+            ORDER BY d.fecha_creacion DESC
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching pending derivations:', error);
+        res.status(500).json({ error: 'Error al obtener derivaciones pendientes' });
+    }
+};
+
+const getMovimientosRecientes = async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "No autorizado" });
+
+    const token = authHeader.split(" ")[1];
+    let decoded;
+    try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+        return res.status(401).json({ error: "Token inválido" });
+    }
+
+    try {
+        const query = `
+            SELECT m.id_movimiento, m.id_documento, d.nombre as documento_nombre, 
+                   m.fecha_movimiento, m.estado, m.observaciones,
+                   u_origen.nombre as unidad_origen, u_destino.nombre as unidad_destino,
+                   ue.nombre as enviado_por_nombre, ue.apellido as enviado_por_apellido,
+                   ur.nombre as recibido_por_nombre, ur.apellido as recibido_por_apellido
+            FROM movimientos_documento m
+            INNER JOIN documentos d ON m.id_documento = d.id_documento
+            LEFT JOIN unidades u_origen ON m.unidad_origen = u_origen.id_unidad
+            LEFT JOIN unidades u_destino ON m.unidad_destino = u_destino.id_unidad
+            LEFT JOIN usuarios ue ON m.enviado_por = ue.id_usuario
+            LEFT JOIN usuarios ur ON m.recibido_por = ur.id_usuario
+            ORDER BY m.fecha_movimiento DESC
+            LIMIT 20
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching recent movements:', error);
+        res.status(500).json({ error: 'Error al obtener movimientos recientes' });
+    }
+};
+
 module.exports = {
     createExternalDocument,
     getTiposDocumento,
@@ -372,5 +689,9 @@ module.exports = {
     designarDocumento,
     finalizarDocumento,
     getDocumentStats,
-    getNotifications
+    getNotifications,
+    aprobarDerivacion,
+    rechazarDerivacion,
+    getDerivacionesPendientes,
+    getMovimientosRecientes
 };

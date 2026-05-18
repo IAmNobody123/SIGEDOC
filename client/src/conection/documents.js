@@ -228,4 +228,89 @@ const fetchNotifications = async () => {
     }
 };
 
-export { fetchTiposDocumento, createExternalDocument, fetchAllDocuments, fetchDocumentMovements, fetchPendingDocumentsByUnidad, fetchUserDocumentHistory, fetchUserDocumentStats, designarDocument, finalizarDocument, fetchDocumentStats, fetchNotifications };
+const fetchDerivacionesPendientes = async () => {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${BACKEND_URL}/derivaciones/pendientes`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return { success: true, data };
+        }
+        return { success: false };
+    } catch (error) {
+        console.error("Error fetching pending derivations:", error);
+        return { success: false, error: "Error de conexión" };
+    }
+};
+
+const fetchMovimientosRecientes = async () => {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${BACKEND_URL}/movimientos/recientes`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return { success: true, data };
+        }
+        return { success: false };
+    } catch (error) {
+        console.error("Error fetching recent movements:", error);
+        return { success: false, error: "Error de conexión" };
+    }
+};
+
+const aprobarDerivacion = async (idDocumento) => {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${BACKEND_URL}/${idDocumento}/aprobar-derivacion`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return { success: true, data };
+        } else {
+            const errorData = await res.json();
+            return { success: false, error: errorData.error };
+        }
+    } catch (error) {
+        console.error("Error approving derivation:", error);
+        return { success: false, error: "Error de conexión" };
+    }
+};
+
+const rechazarDerivacion = async (idDocumento, razon) => {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${BACKEND_URL}/${idDocumento}/rechazar-derivacion`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ razon })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return { success: true, data };
+        } else {
+            const errorData = await res.json();
+            return { success: false, error: errorData.error };
+        }
+    } catch (error) {
+        console.error("Error rejecting derivation:", error);
+        return { success: false, error: "Error de conexión" };
+    }
+};
+
+export { fetchTiposDocumento, createExternalDocument, fetchAllDocuments, fetchDocumentMovements, fetchPendingDocumentsByUnidad, fetchUserDocumentHistory, fetchUserDocumentStats, designarDocument, finalizarDocument, fetchDocumentStats, fetchNotifications, fetchDerivacionesPendientes, aprobarDerivacion, rechazarDerivacion, fetchMovimientosRecientes };

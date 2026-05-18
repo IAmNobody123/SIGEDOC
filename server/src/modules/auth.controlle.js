@@ -4,8 +4,7 @@ const pool = require("../config/dbConfig");
 
 const login = async (req, res) => {
     const SECRET_KEY = process.env.JWT_SECRET;
-    console.log(SECRET_KEY)
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
+    const backendUrl = process.env.BACKEND_URL;
     const { email, password } = req.body;
     try {
         const query = `
