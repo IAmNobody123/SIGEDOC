@@ -2,7 +2,7 @@ const pool = require("../config/dbConfig");
 const jwt = require("jsonwebtoken");
 
 const createExternalDocument = async (req, res) => {
-    const { nombre, descripcion_origen_externo, id_tipo, unidad_destino, observaciones } = req.body;
+    const { nombre, descripcion_origen_externo, id_tipo, unidad_destino, nro_expediente, observaciones } = req.body;
     const authHeader = req.headers.authorization;
     console.log(req.body)
     if (!authHeader) return res.status(401).json({ error: "No autorizado" });
@@ -16,29 +16,28 @@ const createExternalDocument = async (req, res) => {
     }
 
     const creado_por = decoded.id;
-    const unidad_origen = decoded.id_unidad; // Unidad actual (Mesa de partes)
+    const unidad_origen = decoded.id_unidad; 
 
     try {
         await pool.query('BEGIN');
-
-        // Insertar documento con estado Pendiente_Aprobacion_Admin
         const docQuery = `
-            INSERT INTO documentos (nombre, fecha_creacion, creado_por, unidad_actual, estado_actual, externo, descripcion_origen_externo, id_tipo)
-            VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7) RETURNING id_documento
+            INSERT INTO documentos (nombre, fecha_creacion, creado_por, unidad_actual, estado_actual, externo, descripcion_origen_externo, id_tipo, nro_expediente)
+            VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7, $8) RETURNING id_documento
         `;
         const docResult = await pool.query(docQuery, [
             nombre,
             creado_por,
-            unidad_origen, // Mantener en mesa de partes hasta aprobación
-            'Pendiente_Aprobacion_Admin',
+            unidad_destino, // Enviar directo a la unidad destino
+            'Pendiente_Aceptacion_Usuario',
             true,
             descripcion_origen_externo,
-            id_tipo
+            id_tipo,
+            nro_expediente || null
         ]);
 
         const id_documento = docResult.rows[0].id_documento;
 
-        // Insertar movimiento con estado PENDIENTE_APROBACION
+        // Insertar movimiento con estado PENDIENTE_ACEPTACION_USUARIO
         const movQuery = `
             INSERT INTO movimientos_documento (id_documento, unidad_origen, unidad_destino, fecha_movimiento, enviado_por, estado, observaciones)
             VALUES ($1, $2, $3, NOW(), $4, $5, $6)
@@ -48,7 +47,7 @@ const createExternalDocument = async (req, res) => {
             unidad_origen,
             unidad_destino,
             creado_por,
-            'PENDIENTE_APROBACION_ADMIN',
+            'PENDIENTE_ACEPTACION_USUARIO',
             observaciones
         ]);
 
@@ -57,24 +56,27 @@ const createExternalDocument = async (req, res) => {
         const unidadDestResult = await pool.query(unidadDestQuery, [unidad_destino]);
         const unidadDestNombre = unidadDestResult.rows.length > 0 ? unidadDestResult.rows[0].nombre : `Unidad ${unidad_destino}`;
 
-        // Crear notificaciones para todos los admins
-        const adminsQuery = `
-            SELECT DISTINCT u.id_usuario 
-            FROM usuarios u
-            INNER JOIN roles r ON u.id_rol = r.id_rol
-            WHERE LOWER(r.nombre) = 'admin'
+        // Obtener unidad origen nombre
+        const unidadOrigenQuery = 'SELECT nombre FROM unidades WHERE id_unidad = $1';
+        const unidadOrigenResult = await pool.query(unidadOrigenQuery, [unidad_origen]);
+        const unidadOrigenNombre = unidadOrigenResult.rows.length > 0 ? unidadOrigenResult.rows[0].nombre : `Unidad ${unidad_origen}`;
+
+        // Crear notificaciones para usuarios de la unidad destino
+        const usuariosDestQuery = `
+            SELECT id_usuario FROM usuarios
+            WHERE id_unidad = $1
         `;
-        const adminsResult = await pool.query(adminsQuery);
+        const usuariosDestResult = await pool.query(usuariosDestQuery, [unidad_destino]);
 
         const notifQuery = `
             INSERT INTO notificaciones (id_usuario, mensaje, fecha, id_documento)
             VALUES ($1, $2, NOW(), $3)
         `;
 
-        const mensaje = `Nuevo documento derivado a "${unidadDestNombre}" requiere aprobación. Documento: ${nombre}`;
+        const mensaje = `Nuevo documento de "${unidadOrigenNombre}" requiere tu aceptación. Documento: ${nombre}`;
         
-        for (let admin of adminsResult.rows) {
-            await pool.query(notifQuery, [admin.id_usuario, mensaje, id_documento]);
+        for (let usuario of usuariosDestResult.rows) {
+            await pool.query(notifQuery, [usuario.id_usuario, mensaje, id_documento]);
         }
 
         await pool.query('COMMIT');
@@ -85,13 +87,14 @@ const createExternalDocument = async (req, res) => {
                 nombre: nombre,
                 descripcion_origen_externo: descripcion_origen_externo,
                 unidad_destino: unidad_destino,
+                unidad_origen: unidad_origen,
                 creado_por: creado_por,
-                estado: 'Pendiente_Aprobacion_Admin',
+                estado: 'Pendiente_Aceptacion_Usuario',
                 fecha: new Date().toISOString()
             });
         }
 
-        res.status(201).json({ success: true, message: "Documento registrado. Esperando aprobación del administrador.", id_documento });
+        res.status(201).json({ success: true, message: "Documento registrado. El usuario debe aceptarlo para interactuar con él.", id_documento });
     } catch (error) {
         await pool.query('ROLLBACK');
         console.error("Error al crear documento externo:", error);
@@ -113,7 +116,8 @@ const getAllDocuments = async (req, res) => {
     try {
         const query = `
             SELECT d.id_documento, d.nombre, d.fecha_creacion, d.estado_actual, d.externo, d.descripcion_origen_externo,
-                   t.nombre as tipo_documento, u.nombre as unidad_actual_nombre, us.nombre as creador_nombre, us.apellido as creador_apellido
+                   t.nombre as tipo_documento, u.nombre as unidad_actual_nombre, us.nombre as creador_nombre, us.apellido as creador_apellido,
+                   d.nro_expediente as nro_expediente
             FROM documentos d
             LEFT JOIN tipos_documento t ON d.id_tipo = t.id_tipo
             LEFT JOIN unidades u ON d.unidad_actual = u.id_unidad
@@ -142,6 +146,7 @@ const getPendingDocumentsByUnidad = async (req, res) => {
             WHERE d.unidad_actual = $1 
             AND LOWER(d.estado_actual) <> 'finalizado'
             AND LOWER(d.estado_actual) <> 'pendiente_aprobacion_admin'
+            AND LOWER(d.estado_actual) <> 'pendiente_aceptacion_usuario'
             ORDER BY d.fecha_creacion DESC
         `;
         const result = await pool.query(query, [id]);
@@ -149,6 +154,32 @@ const getPendingDocumentsByUnidad = async (req, res) => {
     } catch (error) {
         console.error("Error fetching pending documents for unidad:", error);
         res.status(500).json({ error: "Error al obtener trámites pendientes" });
+    }
+};
+
+const getPendingAcceptanceDocumentsByUnidad = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const query = `
+            SELECT d.id_documento, d.nombre, d.fecha_creacion, d.estado_actual, d.externo, d.descripcion_origen_externo,
+                   t.nombre as tipo_documento, u.nombre as unidad_actual_nombre, d.unidad_actual,
+                   us.nombre as creador_nombre, us.apellido as creador_apellido,
+                   u_origen.nombre as unidad_origen_nombre, m.unidad_origen
+            FROM documentos d
+            LEFT JOIN tipos_documento t ON d.id_tipo = t.id_tipo
+            LEFT JOIN unidades u ON d.unidad_actual = u.id_unidad
+            LEFT JOIN movimientos_documento m ON d.id_documento = m.id_documento
+            LEFT JOIN unidades u_origen ON m.unidad_origen = u_origen.id_unidad
+            LEFT JOIN usuarios us ON d.creado_por = us.id_usuario
+            WHERE d.unidad_actual = $1 
+            AND LOWER(d.estado_actual) = 'pendiente_aceptacion_usuario'
+            ORDER BY d.fecha_creacion DESC
+        `;
+        const result = await pool.query(query, [id]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error("Error fetching pending acceptance documents for unidad:", error);
+        res.status(500).json({ error: "Error al obtener documentos pendientes de aceptación" });
     }
 };
 
@@ -607,6 +638,82 @@ const rechazarDerivacion = async (req, res) => {
     }
 };
 
+const aceptarDocumento = async (req, res) => {
+    const { id } = req.params;
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "No autorizado" });
+
+    const token = authHeader.split(" ")[1];
+    let decoded;
+    try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+        return res.status(401).json({ error: "Token inválido" });
+    }
+
+    try {
+        await pool.query('BEGIN');
+
+        // Obtener información del documento y el movimiento pendiente
+        const docQuery = `
+            SELECT d.id_documento, d.nombre, d.creado_por
+            FROM documentos d
+            WHERE d.id_documento = $1 AND LOWER(d.estado_actual) = 'pendiente_aceptacion_usuario'
+            LIMIT 1
+        `;
+        const docResult = await pool.query(docQuery, [id]);
+
+        if (docResult.rows.length === 0) {
+            await pool.query('ROLLBACK');
+            return res.status(404).json({ error: 'Documento no encontrado o no está en estado de aceptación' });
+        }
+
+        const { nombre, creado_por } = docResult.rows[0];
+
+        // Actualizar estado del documento a 'Derivado'
+        const updateDocQuery = `
+            UPDATE documentos
+            SET estado_actual = 'Derivado'
+            WHERE id_documento = $1
+        `;
+        await pool.query(updateDocQuery, [id]);
+
+        // Actualizar estado del movimiento
+        const updateMovQuery = `
+            UPDATE movimientos_documento
+            SET estado = 'ACEPTADO', recibido_por = $1
+            WHERE id_documento = $2 AND estado = 'PENDIENTE_ACEPTACION_USUARIO'
+        `;
+        await pool.query(updateMovQuery, [decoded.id, id]);
+
+        // Crear notificación para quien creó el documento
+        const notifQuery = `
+            INSERT INTO notificaciones (id_usuario, mensaje, fecha, id_documento)
+            VALUES ($1, $2, NOW(), $3)
+        `;
+
+        const mensajeAceptacion = `Documento "${nombre}" ha sido aceptado y está disponible para interactuar.`;
+        await pool.query(notifQuery, [creado_por, mensajeAceptacion, id]);
+
+        await pool.query('COMMIT');
+
+        if (req.io) {
+            req.io.emit('documento_aceptado', {
+                id_documento: id,
+                nombre: nombre,
+                aceptado_por: decoded.id,
+                fecha: new Date().toISOString()
+            });
+        }
+
+        res.json({ success: true, message: 'Documento aceptado correctamente.' });
+    } catch (error) {
+        await pool.query('ROLLBACK');
+        console.error('Error al aceptar documento:', error);
+        res.status(500).json({ error: 'Error al aceptar el documento' });
+    }
+};
+
 const getDerivacionesPendientes = async (req, res) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: "No autorizado" });
@@ -684,6 +791,7 @@ module.exports = {
     getAllDocuments,
     getDocumentMovements,
     getPendingDocumentsByUnidad,
+    getPendingAcceptanceDocumentsByUnidad,
     getUserDocumentHistory,
     getUserDocumentStats,
     designarDocumento,
@@ -692,6 +800,7 @@ module.exports = {
     getNotifications,
     aprobarDerivacion,
     rechazarDerivacion,
+    aceptarDocumento,
     getDerivacionesPendientes,
     getMovimientosRecientes
 };

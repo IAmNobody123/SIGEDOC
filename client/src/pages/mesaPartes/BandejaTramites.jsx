@@ -21,6 +21,7 @@ function BandejaTramites({ idUnidad }) {
   const [unidades, setUnidades] = useState([]);
   const [selectedUnidadDestino, setSelectedUnidadDestino] =
     useState("");
+  const [unidadFilter, setUnidadFilter] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
@@ -293,6 +294,15 @@ function BandejaTramites({ idUnidad }) {
                 </button>
                 <h2>Designar trámite</h2>
                 <div className="assign-section">
+                  <label htmlFor="unidadFilter">Buscar unidad destino</label>
+                  <input
+                    id="unidadFilter"
+                    type="text"
+                    placeholder="Filtra por nombre o tipo de oficina..."
+                    value={unidadFilter}
+                    onChange={(e) => setUnidadFilter(e.target.value)}
+                    className="unidad-search-input"
+                  />
                   <label htmlFor="unidadDestino">
                     Seleccionar unidad destino
                   </label>
@@ -307,6 +317,14 @@ function BandejaTramites({ idUnidad }) {
                     {unidades
                       .filter(
                         (unidad) => unidad.id_unidad !== idUnidad,
+                      )
+                      .filter((unidad) =>
+                        unidad.nombre
+                          .toLowerCase()
+                          .includes(unidadFilter.toLowerCase()) ||
+                        unidad.tipo
+                          ?.toLowerCase()
+                          .includes(unidadFilter.toLowerCase())
                       )
                       .map((unidad) => (
                         <option

@@ -9,6 +9,7 @@ export default function GestionDocumentos() {
     // const navigate = useNavigate();
     const [tipos, setTipos] = useState([]);
     const [unidades, setUnidades] = useState([]);
+    const [unidadFilter, setUnidadFilter] = useState('');
     const [status, setStatus] = useState({ type: '', message: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     
@@ -17,6 +18,7 @@ export default function GestionDocumentos() {
         descripcion_origen_externo: '',
         id_tipo: '',
         unidad_destino: '',
+        nro_expediente: '',
         observaciones: ''
     });
 
@@ -51,6 +53,7 @@ export default function GestionDocumentos() {
                 descripcion_origen_externo: '',
                 id_tipo: '',
                 unidad_destino: '',
+                nro_expediente: '',
                 observaciones: ''
             });
         } else {
@@ -127,6 +130,14 @@ export default function GestionDocumentos() {
 
                     <div className="form-group full-width">
                         <label htmlFor="unidad_destino">Oficina a Derivar (Destino) *</label>
+                        <input
+                            type="text"
+                            id="unidadFilter"
+                            placeholder="Buscar oficina por nombre o tipo..."
+                            value={unidadFilter}
+                            onChange={(e) => setUnidadFilter(e.target.value)}
+                            className="unidad-search-input"
+                        />
                         <select 
                             id="unidad_destino" 
                             name="unidad_destino" 
@@ -135,12 +146,32 @@ export default function GestionDocumentos() {
                             required
                         >
                             <option value="">Seleccione la oficina destino</option>
-                            {unidades.map(unidad => (
-                                <option key={unidad.id_unidad} value={unidad.id_unidad}>
-                                    {unidad.nombre} ({unidad.tipo})
-                                </option>
-                            ))}
+                            {unidades
+                                .filter((unidad) =>
+                                    unidad.nombre.toLowerCase().includes(unidadFilter.toLowerCase()) ||
+                                    unidad.tipo?.toLowerCase().includes(unidadFilter.toLowerCase())
+                                )
+                                .map(unidad => (
+                                    <option key={unidad.id_unidad} value={unidad.id_unidad}>
+                                        {unidad.nombre} ({unidad.tipo})
+                                    </option>
+                                ))}
                         </select>
+                    </div>
+
+                    <div className="form-group full-width">
+                        <label htmlFor="nro_expediente">Número de Expediente (Opcional)</label>
+                        <div className="input-with-icon">
+                            <FileText size={18} className="icon" />
+                            <input
+                                type="text"
+                                id="nro_expediente"
+                                name="nro_expediente"
+                                placeholder="Ej: EXP-2026-000123"
+                                value={formData.nro_expediente}
+                                onChange={handleChange}
+                            />
+                        </div>
                     </div>
 
                     <div className="form-group full-width">

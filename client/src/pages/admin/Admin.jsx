@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Menu, ArrowBigLeft, LayoutDashboard, Users, FileText, LogOut, Bell, CheckCircle2 } from 'lucide-react';
+import { Menu, ArrowBigLeft, LayoutDashboard, Users, FileText, LogOut, Bell,/* CheckCircle2*/ } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import './Admin.css';
 import Dashboard from './Dashboard';
 import GestionUsers from './GestionUsers';
 import Documents from './Documents';
-import DerivacionesPendientes from './DerivacionesPendientes';
+// import DerivacionesPendientes from './DerivacionesPendientes';
 import { fetchNotifications } from '../../conection/documents';
 
 export default function Admin() {
@@ -85,12 +85,12 @@ export default function Admin() {
             <Documents />
           </div>
         );
-      case 'derivaciones':
-        return (
-          <div className="admin-content-panel slide-in">
-            <DerivacionesPendientes />
-          </div>
-        );
+      // case 'derivaciones':
+      //   return (
+      //     <div className="admin-content-panel slide-in">
+      //       <DerivacionesPendientes />
+      //     </div>
+      //   );
       // case 'settings':
       //   return (
       //     <div className="admin-content-panel slide-in">
@@ -132,10 +132,10 @@ export default function Admin() {
               <FileText size={20} />
               {isSidebarOpen && <span>Documentos</span>}
             </li>
-            <li className={activeTab === 'derivaciones' ? 'active' : ''} onClick={() => setActiveTab('derivaciones')}>
+            {/* <li className={activeTab === 'derivaciones' ? 'active' : ''} onClick={() => setActiveTab('derivaciones')}>
               <CheckCircle2 size={20} />
               {isSidebarOpen && <span>Derivaciones Pendientes</span>}
-            </li>
+            </li> */}
             {/* <li className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
               <Settings size={20} />
               {isSidebarOpen && <span>Configuración</span>}

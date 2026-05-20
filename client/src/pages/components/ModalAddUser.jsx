@@ -7,7 +7,7 @@ export const ModalAddUser = ({ isOpen, onClose, userToEdit }) => {
     const [formData, setFormData] = useState({
         nombre: '',
         apellido: '',
-        email: '',
+        dni: '',
         password: '',
         id_unidad: '',
         id_rol: ''
@@ -25,7 +25,7 @@ export const ModalAddUser = ({ isOpen, onClose, userToEdit }) => {
                 setFormData({
                     nombre: userToEdit.nombre || '',
                     apellido: userToEdit.apellido || '',
-                    email: userToEdit.email || '',
+                    dni: userToEdit.dni || userToEdit.email || '',
                     password: '', // password left blank on edit unless they want to change it
                     id_unidad: userToEdit.id_unidad || '',
                     id_rol: userToEdit.id_rol || ''
@@ -35,7 +35,7 @@ export const ModalAddUser = ({ isOpen, onClose, userToEdit }) => {
                 setFormData({
                     nombre: '',
                     apellido: '',
-                    email: '',
+                    dni: '',
                     password: '',
                     id_unidad: '',
                     id_rol: ''
@@ -72,9 +72,15 @@ export const ModalAddUser = ({ isOpen, onClose, userToEdit }) => {
         setLoading(true);
 
         const data = new FormData();
+        if (!/^[0-9]{8}$/.test(formData.dni)) {
+            alert('El DNI debe contener exactamente 8 dígitos.');
+            setLoading(false);
+            return;
+        }
+
         data.append('nombre', formData.nombre);
         data.append('apellido', formData.apellido);
-        data.append('email', formData.email);
+        data.append('dni', formData.dni);
         if (formData.password) {
             data.append('password', formData.password);
         }
@@ -141,8 +147,17 @@ export const ModalAddUser = ({ isOpen, onClose, userToEdit }) => {
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <label style={{ marginBottom: '4px', fontSize: '14px', fontWeight: 'bold' }}>Email (Usuario)</label>
-                            <input type="email" name="email" value={formData.email} onChange={handleChange} required style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }} />
+                            <label style={{ marginBottom: '4px', fontSize: '14px', fontWeight: 'bold' }}>DNI (Usuario)</label>
+                            <input
+                                type="text"
+                                name="dni"
+                                maxLength={8}
+                                inputMode="numeric"
+                                value={formData.dni}
+                                onChange={(e) => setFormData({ ...formData, dni: e.target.value.replace(/\D/g, '') })}
+                                required
+                                style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                            />
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column' }}>

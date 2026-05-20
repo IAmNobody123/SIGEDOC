@@ -6,25 +6,33 @@ export default function GestionUsers() {
     const [users, setUsers] = useState([])
     const [openModal, setOpenModal] = useState(false)
     const [userToEdit, setUserToEdit] = useState(null)
+    const [loadingUsers, setLoadingUsers] = useState(true)
+    const [loadError, setLoadError] = useState('')
     const API_URL = (import.meta.env.VITE_BACKEND_URL_GENERAL || "http://localhost:5000").trim();
 
     
 
-    useEffect(() => {
-        async function listUsers() {
-            const res = await fetchUsers();
-            if (res.success) {
-                setUsers(res.data);
-            }
-        }
-        listUsers();
-    }, []);
     const listUsers = async () => {
+        setLoadingUsers(true);
+        setLoadError('');
+        setUsers([]);
+
         const res = await fetchUsers();
         if (res.success) {
             setUsers(res.data);
+        } else {
+            setLoadError('No se pudieron cargar los usuarios.');
         }
+
+        setLoadingUsers(false);
     };
+
+    useEffect(() => {
+        (async () => {
+            await listUsers();
+        })();
+    }, []);
+
     const handleDelete = async (id) => {
         if (window.confirm("¿Está seguro de eliminar este usuario?")) {
             const res = await deleteUser(id);
@@ -57,12 +65,22 @@ export default function GestionUsers() {
             </div>
 
             <div className="table-users table-responsive">
-                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
+                {loadingUsers && (
+                    <div style={{ padding: '24px', textAlign: 'center', color: '#4b5563' }}>
+                        Cargando usuarios, por favor espere...
+                    </div>
+                )}
+                {loadError && (
+                    <div style={{ padding: '24px', textAlign: 'center', color: '#b91c1c' }}>
+                        {loadError}
+                    </div>
+                )}
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px', opacity: loadingUsers ? 0.5 : 1 }}>
                     <thead style={{ backgroundColor: '#f3f4f6', textAlign: 'left' }}>
                         <tr>
                             <th style={{ padding: '12px', borderBottom: '2px solid #e5e7eb' }}>Foto</th>
                             <th style={{ padding: '12px', borderBottom: '2px solid #e5e7eb' }}>Nombre</th>
-                            <th style={{ padding: '12px', borderBottom: '2px solid #e5e7eb' }}>Usuario/Email</th>
+                            <th style={{ padding: '12px', borderBottom: '2px solid #e5e7eb' }}>DNI</th>
                             <th style={{ padding: '12px', borderBottom: '2px solid #e5e7eb' }}>Rol</th>
                             <th style={{ padding: '12px', borderBottom: '2px solid #e5e7eb' }}>Unidad</th>
                             <th style={{ padding: '12px', borderBottom: '2px solid #e5e7eb' }}>Acciones</th>
@@ -81,7 +99,7 @@ export default function GestionUsers() {
                                     )}
                                 </td>
                                 <td style={{ padding: '12px' }}>{user.nombre} {user.apellido}</td>
-                                <td style={{ padding: '12px' }}>{user.email}</td>
+                                <td style={{ padding: '12px' }}>{user.dni || user.email}</td>
                                 <td style={{ padding: '12px' }}>
                                     <span style={{ padding: '4px 8px', borderRadius: '999px', fontSize: '0.85em', backgroundColor: '#e0e7ff', color: '#3730a3' }}>
                                         {user.rol_nombre || 'N/A'}
@@ -94,7 +112,7 @@ export default function GestionUsers() {
                                 </td>
                             </tr>
                         ))}
-                        {users.length === 0 && (
+                        {!loadingUsers && users.length === 0 && (
                             <tr>
                                 <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>No hay usuarios registrados.</td>
                             </tr>

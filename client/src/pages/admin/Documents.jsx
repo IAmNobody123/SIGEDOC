@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import {
   fetchAllDocuments,
   fetchDocumentMovements,
+  designarDocument,
 } from "../../conection/documents";
+import { fetchUnidades } from "../../conection/user";
 import "./Documents.css"; // Asumiendo que crearemos este CSS
 
 export default function Documents() {
@@ -15,6 +17,13 @@ export default function Documents() {
   const [movements, setMovements] = useState([]);
   const [loadingMovements, setLoadingMovements] = useState(false);
   const [movementsModalOpen, setMovementsModalOpen] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [reassignDocument, setReassignDocument] = useState(null);
+  const [unidades, setUnidades] = useState([]);
+  const [selectedUnidadDestino, setSelectedUnidadDestino] = useState("");
+  const [reassignLoading, setReassignLoading] = useState(false);
+  const [reassignError, setReassignError] = useState("");
+  const [reassignMessage, setReassignMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
 
@@ -60,9 +69,50 @@ export default function Documents() {
   const closeModal = () => {
     setModalOpen(false);
     setMovementsModalOpen(false);
+    setReassignOpen(false);
     setSelectedDocument(null);
+    setReassignDocument(null);
     setMovements([]);
+    setSelectedUnidadDestino("");
+    setReassignError("");
+    setReassignMessage("");
     setCurrentPage(1);
+  };
+
+  const openReassign = (document) => {
+    setReassignDocument(document);
+    setReassignOpen(true);
+    setSelectedUnidadDestino("");
+    setReassignError("");
+    setReassignMessage("");
+  };
+
+  const handleReassign = async () => {
+    if (!selectedUnidadDestino) {
+      setReassignError("Seleccione la oficina de destino");
+      return;
+    }
+
+    setReassignLoading(true);
+    setReassignError("");
+    setReassignMessage("");
+
+    const res = await designarDocument(
+      reassignDocument.id_documento,
+      selectedUnidadDestino,
+      "Reasignado desde documentos",
+    );
+
+    setReassignLoading(false);
+    if (res.success) {
+      setReassignMessage("Documento reasignado correctamente.");
+      setReassignOpen(false);
+      setReassignDocument(null);
+      setSelectedUnidadDestino("");
+      loadDocuments();
+    } else {
+      setReassignError(res.error || "Error al reasignar el documento");
+    }
   };
 
   // Pagination logic
@@ -73,50 +123,60 @@ export default function Documents() {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-useEffect(() => {
-  const loadDocuments = async () => {
-    try {
-      setLoading(true);
+const loadDocuments = async () => {
+  try {
+    setLoading(true);
+    setError("");
 
-      const res = await fetchAllDocuments();
+    const res = await fetchAllDocuments();
 
-      if (res.success) {
-        setDocuments(res.data);
-      } else {
-        setError(res.error || "Error al cargar documentos");
-      }
-    } catch (err) {
-      setError("Error al cargar documentos",err);
-    } finally {
-      setLoading(false);
+    if (res.success) {
+      setDocuments(res.data);
+    } else {
+      setError(res.error || "Error al cargar documentos");
     }
+  } catch {
+    setError("Error al cargar documentos");
+  } finally {
+    setLoading(false);
+  }
+};
+
+const loadUnidades = async () => {
+  const res = await fetchUnidades();
+  if (res.success) {
+    setUnidades(res.data);
+  }
+};
+
+useEffect(() => {
+  const initialize = async () => {
+    await Promise.all([loadDocuments(), loadUnidades()]);
   };
 
-  loadDocuments();
+  initialize();
 }, []);
 
-  const filteredDocuments = documents.filter(
-    (doc) =>
-      doc.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.tipo_documento
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      doc.creador_nombre
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      doc.creador_apellido
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()),
-  );
+  const filteredDocuments = documents.filter((doc) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      doc.nombre.toLowerCase().includes(term) ||
+      doc.tipo_documento?.toLowerCase().includes(term) ||
+      doc.creador_nombre?.toLowerCase().includes(term) ||
+      doc.creador_apellido?.toLowerCase().includes(term) ||
+      doc.nro_expediente?.toString().toLowerCase().includes(term)
+    );
+  });
 
   return (
     <div className="documents-container">
 
       <div className="search-container">
-        <label htmlFor="">Ingresa el nombre del documento: </label>
+        <label htmlFor="documentSearch">Buscar documento:</label>
         <input
+          id="documentSearch"
           type="text"
-          placeholder="Buscar por nombre, tipo o creador..."
+          placeholder="Buscar por interesado, tipo de documento o nro expediente..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="search-input"
@@ -130,28 +190,28 @@ useEffect(() => {
         <table className="documents-table">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Nro Expediente</th>
               <th>Interesado</th>
               <th>Tipo</th>
               <th>Estado</th>
-              <th>Creado por</th>
+              {/* <th>Creado por</th> */}
               <th>Fecha</th>
               <th>Unidad actual</th>
-              <th>Origen externo</th>
+              {/* <th>Origen externo</th> */}
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {filteredDocuments.map((doc) => (
               <tr key={doc.id_documento}>
-                <td>{doc.id_documento}</td>
+                <td>{doc.nro_expediente ? doc.nro_expediente : "No tiene"}</td>
                 <td>{doc.nombre}</td>
                 <td>{doc.tipo_documento}</td>
                 <td>{doc.estado_actual}</td>
-                <td>{doc.creador_nombre} {doc.creador_apellido}</td>
+                {/* <td>{doc.creador_nombre} {doc.creador_apellido}</td> */}
                 <td>{new Date(doc.fecha_creacion).toLocaleDateString()}</td>
                 <td>{doc.unidad_actual_nombre}</td>
-                <td>{doc.externo ? doc.descripcion_origen_externo : '-'}</td>
+                {/* <td>{doc.externo ? doc.descripcion_origen_externo : '-'}</td> */}
                 <td>
                   <div className="action-buttons">
                     <button
@@ -166,6 +226,14 @@ useEffect(() => {
                     >
                       Ver movimientos
                     </button>
+                    {doc.estado_actual && !["finalizado", "rechazado"].includes(doc.estado_actual.toLowerCase()) && (
+                      <button
+                        onClick={() => openReassign(doc)}
+                        className="reassign-btn"
+                      >
+                        Reasignar
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -230,6 +298,82 @@ useEffect(() => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {reassignOpen && reassignDocument && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button className="close-modal" onClick={closeModal}>
+              ×
+            </button>
+            <h2>Reasignar documento</h2>
+            <div className="document-details-grid">
+              <div className="detail-column">
+                <p>
+                  <strong>ID:</strong> {reassignDocument.id_documento}
+                </p>
+                <p>
+                  <strong>Nombre:</strong> {reassignDocument.nombre}
+                </p>
+                <p>
+                  <strong>Estado:</strong> {reassignDocument.estado_actual}
+                </p>
+                <p>
+                  <strong>Unidad actual:</strong> {reassignDocument.unidad_actual_nombre}
+                </p>
+              </div>
+              <div className="detail-column">
+                <p>
+                  <strong>Tipo:</strong> {reassignDocument.tipo_documento}
+                </p>
+                <p>
+                  <strong>Creado por:</strong> {reassignDocument.creador_nombre} {reassignDocument.creador_apellido}
+                </p>
+                {reassignDocument.externo && (
+                  <p>
+                    <strong>Origen externo:</strong> {reassignDocument.descripcion_origen_externo}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="reassign-section">
+              <label htmlFor="unidadDestino">Selecciona oficina destino</label>
+              <select
+                id="unidadDestino"
+                value={selectedUnidadDestino}
+                onChange={(e) => setSelectedUnidadDestino(e.target.value)}
+                className="select-input"
+              >
+                <option value="">-- Seleccionar oficina --</option>
+                {unidades.map((unidad) => (
+                  <option key={unidad.id_unidad} value={unidad.id_unidad}>
+                    {unidad.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {reassignError && <p className="error">{reassignError}</p>}
+            {reassignMessage && <p className="success">{reassignMessage}</p>}
+
+            <div className="modal-actions">
+              <button
+                className="reassign-confirm-btn"
+                onClick={handleReassign}
+                disabled={reassignLoading}
+              >
+                {reassignLoading ? "Reasignando..." : "Confirmar reasignación"}
+              </button>
+              <button className="view-movements-btn" onClick={closeModal}>
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}

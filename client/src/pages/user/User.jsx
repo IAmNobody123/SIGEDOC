@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, /*LayoutDashboard,*/ FileText, LogOut } from 'lucide-react';
+import { Menu, X, /*LayoutDashboard,*/ FileText, LogOut, LayoutDashboard, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './User.css';
 import Tramites from './Tramites';
 import Historicos from './Historicos';
+import DocumentosPendientesAceptacion from './DocumentosPendientesAceptacion';
+import Dashboard from './Dashboard';
 // import Dashboard from './Dashboard';
 
 export default function User() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState('documents');
+  const [activeTab, setActiveTab] = useState('aceptacion');
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
   const idUsuario = user ? user.id : null;
@@ -34,12 +36,18 @@ export default function User() {
 
   const renderContent = () => {
     switch (activeTab) {
-      // case 'dashboard':
-      //   return (
-      //     <div className="user-content-panel slide-in">
-      //       <Dashboard  idUsuario={idUsuario}/>
-      //     </div>
-      //   );
+      case 'dashboard':
+        return (
+          <div className="user-content-panel slide-in">
+            <Dashboard idUsuario={idUsuario} />
+          </div>
+        );
+      case 'aceptacion':
+        return (
+          <div className="user-content-panel slide-in">
+            <DocumentosPendientesAceptacion idUnidad={idUnidad} />
+          </div>
+        );
       case 'documents':
         return (
           <div className="user-content-panel slide-in">
@@ -75,10 +83,14 @@ export default function User() {
 
         <nav className="sidebar-nav">
           <ul>
-            {/* <li className={activeTab === 'dashboard' ? 'active' : ''} onClick={() => setActiveTab('dashboard')}>
+            <li className={activeTab === 'dashboard' ? 'active' : ''} onClick={() => setActiveTab('dashboard')}>
               <LayoutDashboard size={20} />
               {isSidebarOpen && <span>Dashboard</span>}
-            </li> */}
+            </li>
+            <li className={activeTab === 'aceptacion' ? 'active' : ''} onClick={() => setActiveTab('aceptacion')}>
+              <AlertCircle size={20} />
+              {isSidebarOpen && <span>Por aceptar</span>}
+            </li>
             <li className={activeTab === 'documents' ? 'active' : ''} onClick={() => setActiveTab('documents')}>
               <FileText size={20} />
               {isSidebarOpen && <span>Mis Trámites</span>}

@@ -186,12 +186,17 @@
   gap: 12px;
 }
 
-.assign-section select {
+.assign-section select,
+.unidad-search-input {
   width: 100%;
   padding: 10px 12px;
   border-radius: 6px;
   border: 1px solid #c5c5c5;
   font-size: 14px;
+}
+
+.unidad-search-input {
+  margin-bottom: 8px;
 }
 
 .assign-section button {

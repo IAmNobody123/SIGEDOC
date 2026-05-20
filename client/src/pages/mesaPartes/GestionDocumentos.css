@@ -114,6 +114,17 @@
     padding-right: 30px;
 }
 
+.unidad-search-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #1e293b;
+    background-color: #f8fafc;
+    margin-bottom: 10px;
+}
+
 .document-form input:focus,
 .document-form select:focus,
 .document-form textarea:focus {

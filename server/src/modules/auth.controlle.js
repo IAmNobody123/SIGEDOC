@@ -5,7 +5,10 @@ const pool = require("../config/dbConfig");
 const login = async (req, res) => {
     const SECRET_KEY = process.env.JWT_SECRET;
     const backendUrl = process.env.BACKEND_URL;
-    const { email, password } = req.body;
+    const { dni, password } = req.body;
+    if (!dni || !/^[0-9]{8}$/.test(dni)) {
+        return res.status(400).json({ error: "DNI inválido. Debe contener exactamente 8 dígitos." });
+    }
     try {
         const query = `
             SELECT u.*, r.nombre as rol_nombre 
@@ -13,7 +16,7 @@ const login = async (req, res) => {
             LEFT JOIN roles r ON u.id_rol = r.id_rol 
             WHERE u.email = $1
         `;
-        const result = await pool.query(query, [email]);
+        const result = await pool.query(query, [dni]);
 
         if (result.rows.length === 0) {
             return res.status(401).json({ error: "Usuario no encontrado" });
@@ -30,6 +33,7 @@ const login = async (req, res) => {
             id: user.id_usuario,
             nombre: user.nombre,
             apellido: user.apellido,
+            dni: user.email,
             email: user.email,
             rol: user.rol_nombre,
             id_unidad: user.id_unidad,
@@ -75,7 +79,10 @@ const validateToken = (req, res) => {
 };
 
 const register = async (req, res) => {
-    const { nombre, apellido, email, password, id_unidad, foto_url, id_rol } = req.body;
+    const { nombre, apellido, dni, password, id_unidad, foto_url, id_rol } = req.body;
+    if (!dni || !/^[0-9]{8}$/.test(dni)) {
+        return res.status(400).json({ error: "DNI inválido. Debe contener exactamente 8 dígitos." });
+    }
     try {
         const hashedPassword = await bcrypt.hash(password, 8);
         const query =
@@ -85,7 +92,7 @@ const register = async (req, res) => {
         const result = await pool.query(query, [
             nombre,
             apellido,
-            email,
+            dni,
             hashedPassword,
             id_unidad,
             foto_url,

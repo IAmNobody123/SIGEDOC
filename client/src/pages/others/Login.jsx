@@ -7,13 +7,18 @@ import { login } from '../../conection/auth';
 export default function Login() {
   const navigate = useNavigate();
   const [user, setUser] = useState({
-    email: '',
+    dni: '',
     password: ''
   });
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const res = await login(user.email, user.password);
+    const dni = user.dni.trim();
+    if (!/^[0-9]{8}$/.test(dni)) {
+      alert('El DNI debe contener exactamente 8 dígitos.');
+      return;
+    }
+    const res = await login(dni, user.password);
     if (res.success) {
       localStorage.setItem('token', res.token);
       localStorage.setItem('user', JSON.stringify(res.user));
@@ -55,16 +60,18 @@ export default function Login() {
 
           <form className="login-form" onSubmit={handleLogin}>
             <div className="form-group">
-              <label htmlFor="email">Ingresa tu usuario:</label>
+              <label htmlFor="dni">Ingresa tu DNI:</label>
               <div className="input-wrapper">
                 <Mail size={20} className="input-icon" />
                 <input
                   type="text"
-                  id="email"
-                  placeholder="ingresa tu cuenta"
+                  id="dni"
+                  placeholder="12345678"
+                  inputMode="numeric"
+                  maxLength={8}
                   required
-                  value={user.email}
-                  onChange={(e) => setUser({ ...user, email: e.target.value })}
+                  value={user.dni}
+                  onChange={(e) => setUser({ ...user, dni: e.target.value.replace(/\D/g, '') })}
                 />
               </div>
             </div>

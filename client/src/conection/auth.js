@@ -1,6 +1,6 @@
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-const login = async (email, password) => {
+const login = async (dni, password) => {
     try {
         const res = await fetch(`${BACKEND_URL}/login`, {
             method: "POST",
@@ -8,7 +8,7 @@ const login = async (email, password) => {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                email,
+                dni,
                 password,
             }),
         });
@@ -19,7 +19,7 @@ const login = async (email, password) => {
         return { error: "Error en el servidor" };
     }
 };
-const register = async (user, password, rol) => {
+const register = async (dni, password, rol) => {
     try {
         const res = await fetch(`${BACKEND_URL}/register`, {
             method: "POST",
@@ -27,7 +27,7 @@ const register = async (user, password, rol) => {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                user,
+                dni,
                 password,
                 rol,
             }),

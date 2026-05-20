@@ -5,6 +5,7 @@ const {
     getTiposDocumento,
     getAllDocuments,
     getPendingDocumentsByUnidad,
+    getPendingAcceptanceDocumentsByUnidad,
     getUserDocumentHistory,
     getUserDocumentStats,
     designarDocumento,
@@ -14,6 +15,7 @@ const {
     getNotifications,
     aprobarDerivacion,
     rechazarDerivacion,
+    aceptarDocumento,
     getDerivacionesPendientes,
     getMovimientosRecientes
 } = require("../modules/documents.controller");
@@ -28,10 +30,12 @@ router.get("/usuario/:id/estadisticas", getUserDocumentStats);
 router.get("/usuario/:id/historico", getUserDocumentHistory);
 router.get("/", getAllDocuments);
 router.get("/unidad/:id/pending", getPendingDocumentsByUnidad);
+router.get("/unidad/:id/pending-aceptacion", getPendingAcceptanceDocumentsByUnidad);
 router.post("/:id/designar", designarDocumento);
 router.put("/:id/finalizar", finalizarDocumento);
 router.get("/:id/movimientos", getDocumentMovements);
 router.post("/:id/aprobar-derivacion", aprobarDerivacion);
 router.post("/:id/rechazar-derivacion", rechazarDerivacion);
+router.post("/:id/aceptar", aceptarDocumento);
 
 module.exports = router;

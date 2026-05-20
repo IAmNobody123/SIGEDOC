@@ -4,7 +4,7 @@ const bcrypt = require("bcrypt");
 const getUsers = async (req, res) => {
     try {
         const query = `
-            SELECT u.id_usuario, u.nombre, u.apellido, u.email, u.foto_url, u.id_rol, u.id_unidad,
+            SELECT u.id_usuario, u.nombre, u.apellido, u.email as dni, u.foto_url, u.id_rol, u.id_unidad,
                    r.nombre as rol_nombre, un.nombre as unidad_nombre 
             FROM usuarios u
             LEFT JOIN roles r ON u.id_rol = r.id_rol
@@ -20,7 +20,10 @@ const getUsers = async (req, res) => {
 };
 
 const createUser = async (req, res) => {
-    const { nombre, apellido, email, password, id_unidad, id_rol } = req.body;
+    const { nombre, apellido, dni, password, id_unidad, id_rol } = req.body;
+    if (!dni || !/^[0-9]{8}$/.test(dni)) {
+        return res.status(400).json({ error: "DNI inválido. Debe contener exactamente 8 dígitos." });
+    }
     let foto_url = null;
     if (req.file) {
         foto_url = req.file.filename;
@@ -35,7 +38,7 @@ const createUser = async (req, res) => {
         const result = await pool.query(query, [
             nombre,
             apellido,
-            email,
+            dni,
             hashedPassword,
             id_unidad || null,
             id_rol || null,
@@ -50,7 +53,7 @@ const createUser = async (req, res) => {
 
 const updateUser = async (req, res) => {
     const { id } = req.params;
-    const { nombre, apellido, email, password, id_unidad, id_rol } = req.body;
+    const { nombre, apellido, dni, password, id_unidad, id_rol } = req.body;
     
     try {
         let query;
@@ -62,7 +65,12 @@ const updateUser = async (req, res) => {
 
         if (nombre) { setClauses.push(`nombre = $${paramCount++}`); values.push(nombre); }
         if (apellido) { setClauses.push(`apellido = $${paramCount++}`); values.push(apellido); }
-        if (email) { setClauses.push(`email = $${paramCount++}`); values.push(email); }
+        if (dni) {
+            if (!/^[0-9]{8}$/.test(dni)) {
+                return res.status(400).json({ error: "DNI inválido. Debe contener exactamente 8 dígitos." });
+            }
+            setClauses.push(`email = $${paramCount++}`); values.push(dni);
+        }
         if (id_unidad) { setClauses.push(`id_unidad = $${paramCount++}`); values.push(id_unidad); }
         if (id_rol) { setClauses.push(`id_rol = $${paramCount++}`); values.push(id_rol); }
         
