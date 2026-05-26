@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   fetchDocumentosPendientesAceptacion,
   fetchDocumentMovements,
@@ -19,9 +19,9 @@ function DocumentosPendientesAceptacion({ idUnidad }) {
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
 
-  const loadDocumentos = async () => {
+  const loadDocumentos = useCallback(async () => {
     if (!idUnidad) return;
-    
+
     setLoading(true);
     setError("");
     const res = await fetchDocumentosPendientesAceptacion(idUnidad);
@@ -31,11 +31,14 @@ function DocumentosPendientesAceptacion({ idUnidad }) {
       setError(res.error || "Error al cargar documentos pendientes de aceptación");
     }
     setLoading(false);
-  };
+  }, [idUnidad]);
 
   useEffect(() => {
-    loadDocumentos();
-  }, [idUnidad]);
+    const t = setTimeout(() => {
+      loadDocumentos();
+    }, 0);
+    return () => clearTimeout(t);
+  }, [loadDocumentos]);
 
   const handleViewDetails = async (documento) => {
     setSelectedDocumento(documento);

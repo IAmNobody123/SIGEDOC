@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
     createExternalDocument,
+    createInternalDocument,
     getTiposDocumento,
     getAllDocuments,
     getPendingDocumentsByUnidad,
@@ -21,6 +22,7 @@ const {
 } = require("../modules/documents.controller");
 
 router.post("/external", createExternalDocument);
+router.post("/internal", createInternalDocument);
 router.get("/tipos", getTiposDocumento);
 router.get("/stats/documentos", getDocumentStats);
 router.get("/notificaciones", getNotifications);

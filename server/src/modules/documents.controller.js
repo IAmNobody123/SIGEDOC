@@ -102,6 +102,106 @@ const createExternalDocument = async (req, res) => {
     }
 };
 
+const createInternalDocument = async (req, res) => {
+    const { nombre, id_tipo, unidad_destino, nro_expediente, observaciones } = req.body;
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) return res.status(401).json({ error: "No autorizado" });
+
+    const token = authHeader.split(" ")[1];
+    let decoded;
+    try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+        return res.status(401).json({ error: "Token inválido" });
+    }
+
+    const creado_por = decoded.id;
+    const unidad_origen = decoded.id_unidad;
+
+    try {
+        await pool.query('BEGIN');
+
+        const docQuery = `
+            INSERT INTO documentos (nombre, fecha_creacion, creado_por, unidad_actual, estado_actual, externo, id_tipo, nro_expediente)
+            VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7) RETURNING id_documento
+        `;
+        const docResult = await pool.query(docQuery, [
+            nombre,
+            creado_por,
+            unidad_destino,
+            'Derivado',
+            false,
+            id_tipo,
+            nro_expediente || null
+        ]);
+
+        const id_documento = docResult.rows[0].id_documento;
+
+        const movQuery = `
+            INSERT INTO movimientos_documento (id_documento, unidad_origen, unidad_destino, fecha_movimiento, enviado_por, estado, observaciones)
+            VALUES ($1, $2, $3, NOW(), $4, $5, $6)
+        `;
+        await pool.query(movQuery, [
+            id_documento,
+            unidad_origen,
+            unidad_destino,
+            creado_por,
+            'ENVIADO',
+            observaciones || ''
+        ]);
+
+        const unidadOrigenQuery = 'SELECT nombre FROM unidades WHERE id_unidad = $1';
+        const unidadOrigenResult = await pool.query(unidadOrigenQuery, [unidad_origen]);
+        const unidadOrigenNombre = unidadOrigenResult.rows.length > 0 ? unidadOrigenResult.rows[0].nombre : `Unidad ${unidad_origen}`;
+
+        const notifQuery = `
+            INSERT INTO notificaciones (id_usuario, mensaje, fecha, id_documento)
+            VALUES ($1, $2, NOW(), $3)
+        `;
+
+        const unidadDestinoQuery = 'SELECT id_usuario FROM usuarios WHERE id_unidad = $1';
+        const usuariosDestinoResult = await pool.query(unidadDestinoQuery, [unidad_destino]);
+        const mensajeDestino = `Nuevo documento interno enviado por ${unidadOrigenNombre}. Documento: ${nombre}`;
+
+        for (let usuario of usuariosDestinoResult.rows) {
+            await pool.query(notifQuery, [usuario.id_usuario, mensajeDestino, id_documento]);
+        }
+
+        const adminUsuariosQuery = `
+            SELECT u.id_usuario FROM usuarios u
+            INNER JOIN roles r ON u.id_rol = r.id_rol
+            WHERE LOWER(r.nombre) IN ('administrador', 'admin')
+        `;
+        const adminResult = await pool.query(adminUsuariosQuery);
+        const mensajeAdmin = `Documento interno registrado por ${unidadOrigenNombre}. Documento: ${nombre}`;
+
+        for (let admin of adminResult.rows) {
+            await pool.query(notifQuery, [admin.id_usuario, mensajeAdmin, id_documento]);
+        }
+
+        await pool.query('COMMIT');
+
+        if (req.io) {
+            req.io.emit('documento_creado_interno', {
+                id_documento,
+                nombre,
+                unidad_destino,
+                unidad_origen,
+                creado_por,
+                estado: 'Derivado',
+                fecha: new Date().toISOString()
+            });
+        }
+
+        res.status(201).json({ success: true, message: "Documento interno registrado y notificado al administrador.", id_documento });
+    } catch (error) {
+        await pool.query('ROLLBACK');
+        console.error("Error al crear documento interno:", error);
+        res.status(500).json({ error: "Error al crear el documento interno" });
+    }
+};
+
 const getTiposDocumento = async (req, res) => {
     try {
         const query = "SELECT id_tipo, nombre FROM tipos_documento ORDER BY id_tipo ASC";
@@ -787,6 +887,7 @@ const getMovimientosRecientes = async (req, res) => {
 
 module.exports = {
     createExternalDocument,
+    createInternalDocument,
     getTiposDocumento,
     getAllDocuments,
     getDocumentMovements,

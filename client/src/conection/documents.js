@@ -42,6 +42,30 @@ const createExternalDocument = async (documentData) => {
   }
 };
 
+const createInternalDocument = async (documentData) => {
+  const token = localStorage.getItem("token");
+  try {
+    const res = await fetch(`${BACKEND_URL}/internal`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(documentData),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return { success: true, data };
+    } else {
+      const errorData = await res.json();
+      return { success: false, error: errorData.error };
+    }
+  } catch (error) {
+    console.error("Error creating internal document:", error);
+    return { success: false, error: "Error de conexión" };
+  }
+};
+
 const fetchAllDocuments = async () => {
   const token = localStorage.getItem("token");
   try {
@@ -419,6 +443,7 @@ const fetchDocumentosPendientesAceptacion = async (idUnidad) => {
 export {
   fetchTiposDocumento,
   createExternalDocument,
+  createInternalDocument,
   fetchAllDocuments,
   fetchDocumentMovements,
   fetchPendingDocumentsByUnidad,

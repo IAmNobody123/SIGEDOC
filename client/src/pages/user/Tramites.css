@@ -48,7 +48,7 @@
 }
 
 .tramite-card {
-  border: 1px solid #e0e0e0;
+  border: 1px solid #000000;
   border-radius: 12px;
   padding: 16px;
   background: #ffffff;
@@ -73,6 +73,7 @@
 
 .tramite-card-footer {
   margin-top: 16px;
+  gap: .5rem;
 }
 
 .tramite-btn,
@@ -98,7 +99,7 @@
   opacity: 0.95;
 }
 
-.modal-overlay {
+.modal-overlay2 {
   position: fixed;
   inset: 0;
   background: rgba(20, 25, 35, 0.5);
@@ -108,9 +109,12 @@
   z-index: 1000;
 }
 
-.modal-content {
-  width: min(100%, 760px);
-  max-height: 88vh;
+.modal-content2 {
+  /* Allow wide modal on large screens but fit on small screens */
+  /* width: min(98vw, 1200px);
+  max-width: 1200px; */
+  width: auto;
+  max-height: 92vh;
   overflow-y: auto;
   background: #ffffff;
   border-radius: 12px;
@@ -118,7 +122,7 @@
   position: relative;
 }
 
-.close-modal {
+.close-modal2 {
   position: absolute;
   top: 16px;
   right: 16px;
@@ -216,4 +220,34 @@
   .tramite-card {
     padding: 14px;
   }
+}
+
+.details-btn{
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+.details-btn:hover{
+  background-color: #1d4ed8;
+}
+
+.history-btn{
+  background-color: #4b5563;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+.history-btn:hover{
+  background-color: #374151;
 }

@@ -259,6 +259,71 @@
   line-height: 1.6;
 }
 
+.crear-documento-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 720px;
+}
+
+.crear-documento-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.crear-documento-form label {
+  color: var(--text-h);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.crear-documento-form input,
+.crear-documento-form select,
+.crear-documento-form textarea {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-h);
+  background: #f8fafc;
+}
+
+.primary-button {
+  width: fit-content;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 22px;
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #dc2626;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.success-message {
+  color: #047857;
+  background: #d1fae5;
+  border: 1px solid #86efac;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+
 .user-dashboard {
   display: grid;
   gap: 24px;

@@ -6,6 +6,7 @@ import Tramites from './Tramites';
 import Historicos from './Historicos';
 import DocumentosPendientesAceptacion from './DocumentosPendientesAceptacion';
 import Dashboard from './Dashboard';
+import CrearDocumentos from './CrearDocumentos';
 // import Dashboard from './Dashboard';
 
 export default function User() {
@@ -61,6 +62,12 @@ export default function User() {
             <Historicos idUsuario={idUsuario} />
           </div>
         );
+        case 'crear':
+        return (
+          <div className="user-content-panel slide-in">
+            <CrearDocumentos idUnidad={idUnidad} idUsuario={idUsuario} />
+          </div>
+        );
       default:
         return (
           <div className="user-content-panel slide-in">
@@ -90,6 +97,10 @@ export default function User() {
             <li className={activeTab === 'aceptacion' ? 'active' : ''} onClick={() => setActiveTab('aceptacion')}>
               <AlertCircle size={20} />
               {isSidebarOpen && <span>Por aceptar</span>}
+            </li>
+            <li className={activeTab === 'crear' ? 'active' : ''} onClick={() => setActiveTab('crear')}>
+              <FileText size={20} />
+              {isSidebarOpen && <span>Crear documento</span>}
             </li>
             <li className={activeTab === 'documents' ? 'active' : ''} onClick={() => setActiveTab('documents')}>
               <FileText size={20} />

@@ -6,6 +6,7 @@ import {
   finalizarDocument,
 } from "../../conection/documents";
 import { fetchUnidades } from "../../conection/user";
+import Toast from "../components/Toast";
 import "./Tramites.css";
 
 function Tramites({ idUsuario, idUnidad }) {
@@ -17,13 +18,12 @@ function Tramites({ idUsuario, idUnidad }) {
   const [selectedDocumento, setSelectedDocumento] = useState(null);
   const [movements, setMovements] = useState([]);
   const [loadingMovements, setLoadingMovements] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [unidades, setUnidades] = useState([]);
   const [selectedUnidadDestino, setSelectedUnidadDestino] = useState("");
   const [unidadFilter, setUnidadFilter] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
-  const [actionError, setActionError] = useState("");
-  const [actionMessage, setActionMessage] = useState("");
 
   const loadTramites = async () => {
     setLoading(true);
@@ -72,19 +72,22 @@ useEffect(() => {
   loadData();
 }, [idUnidad]);
 
-  const handleViewDetails = async (documento) => {
+  const handleViewDetails = (documento) => {
     setSelectedDocumento(documento);
     setDetailsOpen(true);
+  };
+
+  const handleViewHistory = async (documento) => {
+    setSelectedDocumento(documento);
+    setHistoryOpen(true);
     setLoadingMovements(true);
-    setActionError("");
-    setActionMessage("");
 
     const res = await fetchDocumentMovements(documento.id_documento);
     if (res.success) {
       setMovements(res.data);
     } else {
       setMovements([]);
-      setActionError(res.error || "No se pudieron cargar los movimientos");
+      Toast.error("Error al cargar historial", res.error || "No se pudieron cargar los movimientos");
     }
     setLoadingMovements(false);
   };
@@ -92,27 +95,28 @@ useEffect(() => {
   const closeDetails = () => {
     setDetailsOpen(false);
     setSelectedDocumento(null);
-    setMovements([]);
     setAssignOpen(false);
     setSelectedUnidadDestino("");
-    setActionError("");
-    setActionMessage("");
+  };
+
+  const closeHistory = () => {
+    setHistoryOpen(false);
+    setSelectedDocumento(null);
+    setMovements([]);
+    setLoadingMovements(false);
   };
 
   const openAssign = () => {
-    setActionError("");
-    setActionMessage("");
     setSelectedUnidadDestino("");
     setAssignOpen(true);
   };
 
   const handleAssign = async () => {
     if (!selectedUnidadDestino) {
-      setActionError("Seleccione la unidad de destino");
+      Toast.error("Seleccione la unidad destino", "Debes elegir una unidad antes de designar.");
       return;
     }
     setActionLoading(true);
-    setActionError("");
 
     const res = await designarDocument(
       idUsuario,
@@ -123,18 +127,29 @@ useEffect(() => {
 
     setActionLoading(false);
     if (res.success) {
-      setActionMessage("Trámite designado correctamente.");
+      Toast.success("Trámite designado", "El trámite fue enviado correctamente.");
       setAssignOpen(false);
       setDetailsOpen(false);
       loadTramites();
     } else {
-      setActionError(res.error || "Error al designar el trámite");
+      Toast.error("Error al designar", res.error || "Error al designar el trámite");
     }
   };
 
   const handleFinalize = async () => {
+    const confirmed = await Toast.confirmAction({
+      title: "Finalizar trámite",
+      text: "¿Deseas finalizar este trámite? Esta acción lo marcará como finalizado.",
+      confirmButtonText: "Sí, finalizar",
+      cancelButtonText: "Cancelar",
+      icon: "warning",
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     setActionLoading(true);
-    setActionError("");
 
     const res = await finalizarDocument(
       selectedDocumento.id_documento,
@@ -143,11 +158,11 @@ useEffect(() => {
 
     setActionLoading(false);
     if (res.success) {
-      setActionMessage("Trámite finalizado correctamente.");
+      Toast.success("Trámite finalizado", "El trámite se finalizó correctamente.");
       setDetailsOpen(false);
       loadTramites();
     } else {
-      setActionError(res.error || "Error al finalizar el trámite");
+      Toast.error("Error al finalizar", res.error || "Error al finalizar el trámite");
     }
   };
 
@@ -178,7 +193,6 @@ useEffect(() => {
 
       {loading && <p className="tramites-info">Cargando trámites...</p>}
       {error && <p className="tramites-error">{error}</p>}
-      {actionMessage && <p className="tramites-success">{actionMessage}</p>}
 
       <div className="tramites-grid">
         {filteredTramites.length === 0 && !loading && (
@@ -207,10 +221,16 @@ useEffect(() => {
             </div>
             <div className="tramite-card-footer">
               <button
-                className="tramite-btn"
+                className="details-btn"
                 onClick={() => handleViewDetails(doc)}
               >
-                Ver detalles
+                Detalles
+              </button>
+              <button
+                className=" history-btn"
+                onClick={() => handleViewHistory(doc)}
+              >
+                Historial
               </button>
             </div>
           </div>
@@ -247,7 +267,29 @@ useEffect(() => {
               )}
             </div>
 
-            <h3>Historial de movimientos</h3>
+            <div className="detail-actions">
+              <button className="secondary-btn" onClick={openAssign}>
+                Designar
+              </button>
+              <button
+                className="primary-btn"
+                onClick={handleFinalize}
+                disabled={actionLoading}
+              >
+                Finalizar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {historyOpen && selectedDocumento && (
+        <div className="modal-overlay2" onClick={closeHistory}>
+          <div className="modal-content2" onClick={(e) => e.stopPropagation()}>
+            <button className="close-modal2" onClick={closeHistory}>
+              ×
+            </button>
+            <h2>Historial de movimientos - {selectedDocumento.nombre}</h2>
             {loadingMovements ? (
               <p>Cargando historial...</p>
             ) : movements.length > 0 ? (
@@ -280,23 +322,8 @@ useEffect(() => {
                 </table>
               </div>
             ) : (
-              <p>No hay movimientos registrados para este documento.</p>
+              <p>No hay movimientos registrados para este trámite.</p>
             )}
-
-            {actionError && <p className="tramites-error">{actionError}</p>}
-
-            <div className="detail-actions">
-              <button className="secondary-btn" onClick={openAssign}>
-                Designar
-              </button>
-              <button
-                className="primary-btn"
-                onClick={handleFinalize}
-                disabled={actionLoading}
-              >
-                Finalizar
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -345,7 +372,6 @@ useEffect(() => {
                 Enviar tramo
               </button>
             </div>
-            {actionError && <p className="tramites-error">{actionError}</p>}
           </div>
         </div>
       )}
