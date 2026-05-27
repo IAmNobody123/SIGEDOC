@@ -24,6 +24,7 @@ function Tramites({ idUsuario, idUnidad }) {
   const [selectedUnidadDestino, setSelectedUnidadDestino] = useState("");
   const [unidadFilter, setUnidadFilter] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [observacionesAssign, setObservacionesAssign] = useState("");
 
   const loadTramites = async () => {
     setLoading(true);
@@ -97,6 +98,7 @@ useEffect(() => {
     setSelectedDocumento(null);
     setAssignOpen(false);
     setSelectedUnidadDestino("");
+    setObservacionesAssign("");
   };
 
   const closeHistory = () => {
@@ -108,6 +110,7 @@ useEffect(() => {
 
   const openAssign = () => {
     setSelectedUnidadDestino("");
+    setObservacionesAssign("");
     setAssignOpen(true);
   };
 
@@ -118,11 +121,13 @@ useEffect(() => {
     }
     setActionLoading(true);
 
+    const observacionesFinal = observacionesAssign.trim() || "Designado desde trámites";
+
     const res = await designarDocument(
       idUsuario,
       selectedDocumento.id_documento,
       selectedUnidadDestino,
-      "Designado desde trámites"
+      observacionesFinal
     );
 
     setActionLoading(false);
@@ -364,6 +369,15 @@ useEffect(() => {
                     </option>
                   ))}
               </select>
+              <label htmlFor="observacionesAssign">Observaciones (Opcional)</label>
+              <textarea
+                id="observacionesAssign"
+                placeholder="Añade observaciones sobre esta designación..."
+                value={observacionesAssign}
+                onChange={(e) => setObservacionesAssign(e.target.value)}
+                className="observaciones-textarea"
+                rows={3}
+              />
               <button
                 className="primary-btn"
                 onClick={handleAssign}

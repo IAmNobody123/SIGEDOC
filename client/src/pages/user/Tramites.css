@@ -99,6 +99,7 @@
   opacity: 0.95;
 }
 
+.modal-overlay,
 .modal-overlay2 {
   position: fixed;
   inset: 0;
@@ -122,7 +123,28 @@
   position: relative;
 }
 
+.modal-content {
+  width: auto;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  position: relative;
+}
+
 .close-modal2 {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  cursor: pointer;
+  color: #4b5563;
+}
+
+.close-modal {
   position: absolute;
   top: 16px;
   right: 16px;
@@ -190,6 +212,13 @@
   gap: 12px;
 }
 
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
 .assign-section select,
 .unidad-search-input {
   width: 100%;
@@ -250,4 +279,52 @@
 }
 .history-btn:hover{
   background-color: #374151;
+}
+.btn-cancelar {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-cancelar:hover {
+  background-color: #5a6268;
+}
+
+.btn-aceptar {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-aceptar:hover {
+  background-color: #218838;
+}
+
+.action-error {
+  color: #c0392b;
+  padding: 12px;
+  background-color: #fadbd8;
+  border-radius: 6px;
+  margin: 12px 0;
+  border-left: 4px solid #c0392b;
+}#observacionesAssign{
+  background-color: #f8f9fa;
+    border-radius: 6px;
+  padding: 12px;
+  color: #000;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.6;
 }
