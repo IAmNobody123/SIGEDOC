@@ -18,11 +18,14 @@ export default function GestionDocumentos() {
 
   const [formData, setFormData] = useState({
     nombre: "",
-    prefijo_documento: '',
+    prefijo_documento: "",
     descripcion_origen_externo: "",
     id_tipo: "",
     unidad_destino: "",
     nro_expediente: "",
+    interesado: "",
+    dniruc: "",
+    fecha_ingreso: "",
     observaciones: "",
   });
 
@@ -47,39 +50,64 @@ export default function GestionDocumentos() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const nombreFinal = formData.prefijo_documento
-      ? (formData.nro_expediente ? `${formData.prefijo_documento} ${formData.nro_expediente}` : '')
-      : formData.nombre;
+    const expedienteFinal = formData.prefijo_documento
+      ? formData.nro_expediente
+        ? `${formData.prefijo_documento} ${formData.nro_expediente}`
+        : ""
+      : formData.nro_expediente;
 
-    if (!nombreFinal || !formData.id_tipo || !formData.unidad_destino) {
-      Toast.error('Por favor completa el nombre (o selecciona prefijo + número), tipo y unidad destino.');
+    if (
+      !formData.nombre ||
+      !formData.id_tipo ||
+      !formData.unidad_destino ||
+      !formData.interesado ||
+      !formData.dniruc
+    ) {
+      Toast.error(
+        "Por favor completa el nombre del documento, interesado, DNI/RUC, tipo y unidad destino.",
+      );
       setIsSubmitting(false);
       return;
     }
 
     if (formData.prefijo_documento && !formData.nro_expediente) {
-      Toast.error('Selecciona el número de expediente cuando eliges un prefijo.');
+      Toast.error(
+        "Selecciona el número de documento cuando eliges un prefijo.",
+      );
       setIsSubmitting(false);
       return;
     }
 
-    const payload = { ...formData, nombre: nombreFinal };
+    const payload = {
+      ...formData,
+      nombre: formData.nombre,
+      nro_expediente: expedienteFinal || null,
+    };
 
     const res = await createExternalDocument(payload);
 
     if (res.success) {
-      Toast.success('Documento registrado', 'Documento registrado y derivado con éxito.');
+      Toast.success(
+        "Documento registrado",
+        "Documento registrado y derivado con éxito.",
+      );
       setFormData({
-        nombre: '',
-        prefijo_documento: '',
-        descripcion_origen_externo: '',
-        id_tipo: '',
-        unidad_destino: '',
-        nro_expediente: '',
-        observaciones: '',
+        nombre: "",
+        prefijo_documento: "",
+        descripcion_origen_externo: "",
+        id_tipo: "",
+        unidad_destino: "",
+        nro_expediente: "",
+        interesado: "",
+        dniruc: "",
+        fecha_ingreso: "",
+        observaciones: "",
       });
     } else {
-      Toast.error('Error al registrar', res.error || 'Ocurrió un error al registrar el documento.');
+      Toast.error(
+        "Error al registrar",
+        res.error || "Ocurrió un error al registrar el documento.",
+      );
     }
     setIsSubmitting(false);
   };
@@ -94,25 +122,23 @@ export default function GestionDocumentos() {
         </p>
       </div>
 
-
       <form className="document-form" onSubmit={handleSubmit}>
         <div className="form-grid">
           <div className="form-group">
-            <label htmlFor="nombre">Nombre del Interesado *</label>
+            <label htmlFor="nombre">Nombre del Documento *</label>
             <div className="input-with-icon">
               <FileText size={18} className="icon" />
               <input
                 type="text"
                 id="nombre"
                 name="nombre"
-                placeholder="Ej: Juan Pérez"
+                placeholder="Ej: Informe de revisión interna"
                 value={formData.nombre}
                 onChange={handleChange}
                 required
               />
             </div>
           </div>
-
           <div className="form-group">
             <label htmlFor="id_tipo">Tipo de Documento *</label>
             <select
@@ -131,7 +157,43 @@ export default function GestionDocumentos() {
             </select>
           </div>
 
-          <div className="form-group full-width">
+          <div className="form-group">
+            <label htmlFor="interesado">
+              Nombre del Interesado *
+            </label>
+            <div className="input-with-icon">
+              <FileText size={18} className="icon" />
+              <input
+                type="text"
+                id="interesado"
+                name="interesado"
+                placeholder="Ej: Juan Pérez"
+                value={formData.interesado}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-group ">
+            <label htmlFor="dniruc">DNI/RUC del Interesado *</label>
+            <div className="input-with-icon">
+              <FileText size={18} className="icon" />
+              <input
+                type="text"
+                id="dniruc"
+                name="dniruc"
+                placeholder="Ej: 12345678"
+                value={formData.dniruc}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          </div>
+
+          
+
+          <div className="form-group">
             <label htmlFor="descripcion_origen_externo">
               Entidad / Oficina Externa de Origen *
             </label>
@@ -147,6 +209,16 @@ export default function GestionDocumentos() {
                 required
               />
             </div>
+          </div>
+          <div className="form-group">
+            <label htmlFor="fecha_ingreso">Fecha de Ingreso</label>
+            <input
+              type="date"
+              id="fecha_ingreso"
+              name="fecha_ingreso"
+              value={formData.fecha_ingreso}
+              onChange={handleChange}
+            />
           </div>
 
           <div className="form-group full-width">
@@ -191,7 +263,9 @@ export default function GestionDocumentos() {
           </div>
 
           <div className="form-group">
-            <label>Prefijo para número de documento (Opcional)</label>
+            <label>
+              Prefijo para número de expediente (Opcional)
+            </label>
             <select
               name="prefijo_documento"
               value={formData.prefijo_documento}
@@ -206,7 +280,8 @@ export default function GestionDocumentos() {
               <option value="esquela">esquela</option>
             </select>
           </div>
-          <div className="form-group full-width">
+
+          <div className="form-group ">
             <label htmlFor="nro_expediente">
               Número de Documento (Opcional)
             </label>
@@ -233,7 +308,7 @@ export default function GestionDocumentos() {
               placeholder="Añade detalles adicionales o indicaciones para la derivación..."
               value={formData.observaciones}
               onChange={handleChange}
-              rows="3"
+              rows="4"
             ></textarea>
           </div>
         </div>

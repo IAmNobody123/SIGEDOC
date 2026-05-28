@@ -2,7 +2,7 @@ const pool = require("../config/dbConfig");
 const jwt = require("jsonwebtoken");
 
 const createExternalDocument = async (req, res) => {
-    const { nombre, descripcion_origen_externo, id_tipo, unidad_destino, nro_expediente, observaciones } = req.body;
+    const { nombre, descripcion_origen_externo, id_tipo, unidad_destino, nro_expediente, interesado, dniruc, observaciones } = req.body;
     const authHeader = req.headers.authorization;
     console.log(req.body)
     if (!authHeader) return res.status(401).json({ error: "No autorizado" });
@@ -21,8 +21,8 @@ const createExternalDocument = async (req, res) => {
     try {
         await pool.query('BEGIN');
         const docQuery = `
-            INSERT INTO documentos (nombre, fecha_creacion, creado_por, unidad_actual, estado_actual, externo, descripcion_origen_externo, id_tipo, nro_expediente)
-            VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7, $8) RETURNING id_documento
+            INSERT INTO documentos (nombre, fecha_creacion, creado_por, unidad_actual, estado_actual, externo, descripcion_origen_externo, id_tipo, nro_expediente, interesado, dniruc)
+            VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id_documento
         `;
         const docResult = await pool.query(docQuery, [
             nombre,
@@ -32,7 +32,9 @@ const createExternalDocument = async (req, res) => {
             true,
             descripcion_origen_externo,
             id_tipo,
-            nro_expediente || null
+            nro_expediente || null,
+            interesado || null,
+            dniruc || null
         ]);
 
         const id_documento = docResult.rows[0].id_documento;
@@ -236,7 +238,7 @@ const getPendingDocumentsByUnidad = async (req, res) => {
     const { id } = req.params;
     try {
         const query = `
-            SELECT d.id_documento, d.nombre, d.fecha_creacion, d.estado_actual, d.externo, d.descripcion_origen_externo,
+            SELECT d.id_documento, d.nombre, d.interesado, d.fecha_creacion, d.estado_actual, d.externo, d.descripcion_origen_externo,
                    t.nombre as tipo_documento, u.nombre as unidad_actual_nombre, d.unidad_actual,
                    us.nombre as creador_nombre, us.apellido as creador_apellido
             FROM documentos d
@@ -261,10 +263,11 @@ const getPendingAcceptanceDocumentsByUnidad = async (req, res) => {
     const { id } = req.params;
     try {
         const query = `
-            SELECT d.id_documento, d.nombre, d.fecha_creacion, d.estado_actual, d.externo, d.descripcion_origen_externo,
+            SELECT DISTINCT ON (d.id_documento)
+                   d.id_documento, d.nombre, d.fecha_creacion, d.estado_actual, d.externo, d.descripcion_origen_externo,
                    t.nombre as tipo_documento, u.nombre as unidad_actual_nombre, d.unidad_actual,
                    us.nombre as creador_nombre, us.apellido as creador_apellido,
-                   u_origen.nombre as unidad_origen_nombre, m.unidad_origen
+                   u_origen.nombre as unidad_origen_nombre, m.unidad_origen, m.observaciones as observaciones_ultima_mov
             FROM documentos d
             LEFT JOIN tipos_documento t ON d.id_tipo = t.id_tipo
             LEFT JOIN unidades u ON d.unidad_actual = u.id_unidad
@@ -273,7 +276,7 @@ const getPendingAcceptanceDocumentsByUnidad = async (req, res) => {
             LEFT JOIN usuarios us ON d.creado_por = us.id_usuario
             WHERE d.unidad_actual = $1 
             AND LOWER(d.estado_actual) = 'pendiente_aceptacion_usuario'
-            ORDER BY d.fecha_creacion DESC
+            ORDER BY d.id_documento, m.fecha_movimiento DESC
         `;
         const result = await pool.query(query, [id]);
         res.json(result.rows);
@@ -287,7 +290,7 @@ const getUserDocumentHistory = async (req, res) => {
     const { id } = req.params;
     try {
         const query = `
-            SELECT DISTINCT d.id_documento, d.nombre, d.fecha_creacion, d.estado_actual, d.externo,
+            SELECT DISTINCT d.id_documento, d.nombre, d.interesado, d.fecha_creacion, d.estado_actual, d.externo,
                    d.descripcion_origen_externo, t.nombre AS tipo_documento,
                    u.nombre AS unidad_actual_nombre, us.nombre AS creador_nombre, us.apellido AS creador_apellido
             FROM documentos d
@@ -373,7 +376,7 @@ const designarDocumento = async (req, res) => {
 
         const updateQuery = `
             UPDATE documentos
-            SET unidad_actual = $1, estado_actual = 'Derivado'
+            SET unidad_actual = $1, estado_actual = 'Pendiente_Aceptacion_Usuario'
             WHERE id_documento = $2
         `;
         await pool.query(updateQuery, [unidad_destino, id]);
@@ -387,7 +390,7 @@ const designarDocumento = async (req, res) => {
             unidad_origen,
             unidad_destino,
             enviado_por,
-            'ENVIADO',
+            'ACEPTADO',
             observaciones || ''
         ]);
         

@@ -175,6 +175,7 @@ useEffect(() => {
     const term = searchTerm.toLowerCase().trim();
     return (
       doc.nombre?.toLowerCase().includes(term) ||
+      doc.interesado?.toLowerCase().includes(term) ||
       doc.tipo_documento?.toLowerCase().includes(term) ||
       doc.creador_nombre?.toLowerCase().includes(term) ||
       doc.creador_apellido?.toLowerCase().includes(term)
@@ -209,6 +210,9 @@ useEffect(() => {
               <h3>{doc.nombre}</h3>
               <p>
                 <strong>Tipo:</strong> {doc.tipo_documento || "-"}
+              </p>
+              <p>
+                <strong>Interesado:</strong> {doc.interesado || "-"}
               </p>
               <p>
                 <strong>Estado:</strong> {doc.estado_actual || "-"}
@@ -260,6 +264,9 @@ useEffect(() => {
                 <strong>Tipo:</strong> {selectedDocumento.tipo_documento || "-"}
               </p>
               <p>
+                <strong>Interesado:</strong> {selectedDocumento.interesado || "-"}
+              </p>
+              <p>
                 <strong>Estado actual:</strong> {selectedDocumento.estado_actual}
               </p>
               <p>
@@ -307,7 +314,7 @@ useEffect(() => {
                       <th>De</th>
                       <th>A</th>
                       <th>Enviado por</th>
-                      <th>Recibido por</th>
+                      {/* <th>Recibido por</th> */}
                       <th>Observaciones</th>
                     </tr>
                   </thead>
@@ -319,7 +326,7 @@ useEffect(() => {
                         <td>{mov.unidad_origen_nombre}</td>
                         <td>{mov.unidad_destino_nombre}</td>
                         <td>{mov.enviado_por_nombre} {mov.enviado_por_apellido}</td>
-                        <td>{mov.recibido_por_nombre ? `${mov.recibido_por_nombre} ${mov.recibido_por_apellido}` : '-'}</td>
+                        {/* <td>{mov.recibido_por_nombre ? `${mov.recibido_por_nombre} ${mov.recibido_por_apellido}` : '-'}</td> */}
                         <td>{mov.observaciones || '-'}</td>
                       </tr>
                     ))}

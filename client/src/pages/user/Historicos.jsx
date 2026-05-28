@@ -70,6 +70,7 @@ function Historicos({ idUsuario }) {
     const term = searchTerm.toLowerCase().trim();
     return (
       doc.nombre?.toLowerCase().includes(term) ||
+      doc.interesado?.toLowerCase().includes(term) ||
       doc.tipo_documento?.toLowerCase().includes(term) ||
       doc.estado_actual?.toLowerCase().includes(term) ||
       doc.creador_nombre?.toLowerCase().includes(term) ||
@@ -132,6 +133,9 @@ function Historicos({ idUsuario }) {
               </p>
               <p>
                 <strong>Estado:</strong> {doc.estado_actual || '-'}
+              </p>
+              <p>
+                <strong>Interesado:</strong> {doc.interesado || '-'}
               </p>
               <p>
                 <strong>Creado por:</strong> {doc.creador_nombre} {doc.creador_apellido}
@@ -209,6 +213,9 @@ function Historicos({ idUsuario }) {
               </p>
               <p>
                 <strong>Nombre:</strong> {selectedDocumento.nombre}
+              </p>
+              <p>
+                <strong>Interesado:</strong> {selectedDocumento.interesado || '-'}
               </p>
               <p>
                 <strong>Tipo:</strong> {selectedDocumento.tipo_documento || '-'}

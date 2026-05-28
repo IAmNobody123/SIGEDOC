@@ -136,7 +136,7 @@
   background-color: #f8f9fa;
   border-top: 1px solid #e0e0e0;
   display: flex;
-  gap: 10px;
+  gap: 15px;
 }
 
 .btn-ver-detalles {
@@ -144,6 +144,18 @@
   padding: 10px 15px;
   background-color: #3498db;
   color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+.btn-ver-historial {
+  flex: 1;
+  padding: 10px 15px;
+  background-color: #e74c3c;
+  color: #fff;
   border: none;
   border-radius: 6px;
   cursor: pointer;

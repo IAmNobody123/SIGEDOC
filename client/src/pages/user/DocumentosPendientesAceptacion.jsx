@@ -12,6 +12,7 @@ function DocumentosPendientesAceptacion({ idUnidad }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedDocumento, setSelectedDocumento] = useState(null);
   const [movements, setMovements] = useState([]);
   const [loadingMovements, setLoadingMovements] = useState(false);
@@ -40,10 +41,18 @@ function DocumentosPendientesAceptacion({ idUnidad }) {
     return () => clearTimeout(t);
   }, [loadDocumentos]);
 
-  const handleViewDetails = async (documento) => {
+  const handleViewDetails = (documento) => {
     setSelectedDocumento(documento);
     setDetailsOpen(true);
+    setActionError("");
+    setActionMessage("");
+  };
+
+  const handleViewHistory = async (documento) => {
+    setSelectedDocumento(documento);
+    setHistoryOpen(true);
     setLoadingMovements(true);
+    setMovements([]);
     setActionError("");
     setActionMessage("");
 
@@ -60,7 +69,15 @@ function DocumentosPendientesAceptacion({ idUnidad }) {
   const closeDetails = () => {
     setDetailsOpen(false);
     setSelectedDocumento(null);
+    setActionError("");
+    setActionMessage("");
+  };
+
+  const closeHistory = () => {
+    setHistoryOpen(false);
+    setSelectedDocumento(null);
     setMovements([]);
+    setLoadingMovements(false);
     setActionError("");
     setActionMessage("");
   };
@@ -175,6 +192,12 @@ function DocumentosPendientesAceptacion({ idUnidad }) {
               >
                 Ver detalles
               </button>
+              <button
+                className="btn-ver-historial"
+                onClick={() => handleViewHistory(doc)}
+              >
+                Historial
+              </button>
             </div>
           </div>
         ))}
@@ -187,7 +210,6 @@ function DocumentosPendientesAceptacion({ idUnidad }) {
               ×
             </button>
             <h2>Detalle del documento</h2>
-
             <div className="detail-section">
               <h3>Información general</h3>
               <p>
@@ -203,7 +225,7 @@ function DocumentosPendientesAceptacion({ idUnidad }) {
                 <strong>Origen:</strong> {selectedDocumento.unidad_origen_nombre || "Externo"}
               </p>
               <p>
-                <strong>Remitido por:</strong> {selectedDocumento.creador_nombre}{" "}
+                <strong>Creado por:</strong> {selectedDocumento.creador_nombre}{" "}
                 {selectedDocumento.creador_apellido}
               </p>
               <p>
@@ -214,44 +236,14 @@ function DocumentosPendientesAceptacion({ idUnidad }) {
               </p>
               {selectedDocumento.descripcion_origen_externo && (
                 <p>
-                  <strong>Descripción:</strong>{" "}
+                  <strong>Lugar de creacion:</strong>{" "}
                   {selectedDocumento.descripcion_origen_externo}
                 </p>
               )}
-            </div>
-
-            <div className="detail-section">
-              <h3>Historial de movimientos</h3>
-              {loadingMovements ? (
-                <p>Cargando movimientos...</p>
-              ) : movements.length === 0 ? (
-                <p>No hay movimientos registrados</p>
-              ) : (
-                <div className="movements-list">
-                  {movements.map((mov) => (
-                    <div key={mov.id_movimiento} className="movement-item">
-                      <p>
-                        <strong>Movimiento:</strong> {mov.id_movimiento}
-                      </p>
-                      <p>
-                        <strong>De:</strong> {mov.unidad_origen_nombre || "-"} → <strong>Hacia:</strong>{" "}
-                        {mov.unidad_destino_nombre || "-"}
-                      </p>
-                      <p>
-                        <strong>Estado:</strong> {mov.estado}
-                      </p>
-                      <p>
-                        <strong>Fecha:</strong>{" "}
-                        {new Date(mov.fecha_movimiento).toLocaleString("es-ES")}
-                      </p>
-                      {mov.observaciones && (
-                        <p>
-                          <strong>Observaciones:</strong> {mov.observaciones}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
+              {selectedDocumento.observaciones_ultima_mov && (
+                <p>
+                  <strong>Observaciones:</strong> {selectedDocumento.observaciones_ultima_mov}
+                </p>
               )}
             </div>
 
@@ -270,6 +262,53 @@ function DocumentosPendientesAceptacion({ idUnidad }) {
                 {actionLoading ? "Aceptando..." : "✓ Aceptar documento"}
               </button>
               <button className="btn-cancelar" onClick={closeDetails}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {historyOpen && selectedDocumento && (
+        <div className="modal-overlay2" onClick={closeHistory}>
+          <div className="modal-content2" onClick={(e) => e.stopPropagation()}>
+            <button className="close-modal2" onClick={closeHistory}>
+              ×
+            </button>
+            <h2>Historial de movimientos - {selectedDocumento.nombre}</h2>
+            {loadingMovements ? (
+              <p>Cargando movimientos...</p>
+            ) : movements.length === 0 ? (
+              <p>No hay movimientos registrados</p>
+            ) : (
+              <div className="movements-list">
+                {movements.map((mov) => (
+                  <div key={mov.id_movimiento} className="movement-item">
+                    <p>
+                      <strong>Movimiento:</strong> {mov.id_movimiento}
+                    </p>
+                    <p>
+                      <strong>De:</strong> {mov.unidad_origen_nombre || "-"} → <strong>Hacia:</strong>{" "}
+                      {mov.unidad_destino_nombre || "-"}
+                    </p>
+                    <p>
+                      <strong>Estado:</strong> {mov.estado}
+                    </p>
+                    <p>
+                      <strong>Fecha:</strong>{" "}
+                      {new Date(mov.fecha_movimiento).toLocaleString("es-ES")}
+                    </p>
+                    {mov.observaciones && (
+                      <p>
+                        <strong>Observaciones:</strong> {mov.observaciones}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="modal-actions">
+              <button className="btn-cancelar" onClick={closeHistory}>
                 Cerrar
               </button>
             </div>
