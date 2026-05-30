@@ -2,7 +2,7 @@ const pool = require("../config/dbConfig");
 const jwt = require("jsonwebtoken");
 
 const createExternalDocument = async (req, res) => {
-    const { nombre, descripcion_origen_externo, id_tipo, unidad_destino, nro_expediente, interesado, dniruc, observaciones } = req.body;
+    const { nombre, descripcion_origen_externo, id_tipo, unidad_destino, nro_expediente, interesado, dniruc, observaciones, fecha_ingreso } = req.body;
     const authHeader = req.headers.authorization;
     console.log(req.body)
     if (!authHeader) return res.status(401).json({ error: "No autorizado" });
@@ -21,8 +21,8 @@ const createExternalDocument = async (req, res) => {
     try {
         await pool.query('BEGIN');
         const docQuery = `
-            INSERT INTO documentos (nombre, fecha_creacion, creado_por, unidad_actual, estado_actual, externo, descripcion_origen_externo, id_tipo, nro_expediente, interesado, dniruc)
-            VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id_documento
+            INSERT INTO documentos (nombre, fecha_creacion, creado_por, unidad_actual, estado_actual, externo, descripcion_origen_externo, id_tipo, nro_expediente, interesado, dniruc, fecha_ingreso)
+            VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id_documento
         `;
         const docResult = await pool.query(docQuery, [
             nombre,
@@ -34,7 +34,8 @@ const createExternalDocument = async (req, res) => {
             id_tipo,
             nro_expediente || null,
             interesado || null,
-            dniruc || null
+            dniruc || null,
+            fecha_ingreso || null,
         ]);
 
         const id_documento = docResult.rows[0].id_documento;
@@ -217,9 +218,9 @@ const getTiposDocumento = async (req, res) => {
 const getAllDocuments = async (req, res) => {
     try {
         const query = `
-            SELECT d.id_documento, d.nombre, d.fecha_creacion, d.estado_actual, d.externo, d.descripcion_origen_externo,
-                   t.nombre as tipo_documento, u.nombre as unidad_actual_nombre, us.nombre as creador_nombre, us.apellido as creador_apellido,
-                   d.nro_expediente as nro_expediente
+            SELECT d.id_documento, d.nombre as nombregeneral, d.fecha_creacion, d.estado_actual, d.externo, d.descripcion_origen_externo,
+	   t.nombre as tipo_documento, u.nombre as unidad_actual_nombre, us.nombre as creador_nombre, us.apellido as creador_apellido,
+	   d.nro_expediente as nro_expediente, d.interesado as nombreinteresado, d.fecha_ingreso as fechaingreso
             FROM documentos d
             LEFT JOIN tipos_documento t ON d.id_tipo = t.id_tipo
             LEFT JOIN unidades u ON d.unidad_actual = u.id_unidad
@@ -536,12 +537,14 @@ const getDocumentMovements = async (req, res) => {
             SELECT m.id_movimiento, m.fecha_movimiento, m.estado, m.observaciones,
                    uo.nombre as unidad_origen_nombre, ud.nombre as unidad_destino_nombre,
                    ue.nombre as enviado_por_nombre, ue.apellido as enviado_por_apellido,
-                   ur.nombre as recibido_por_nombre, ur.apellido as recibido_por_apellido
+                   ur.nombre as recibido_por_nombre, ur.apellido as recibido_por_apellido,
+	                d.fecha_ingreso as fechaingreso
             FROM movimientos_documento m
             LEFT JOIN unidades uo ON m.unidad_origen = uo.id_unidad
             LEFT JOIN unidades ud ON m.unidad_destino = ud.id_unidad
             LEFT JOIN usuarios ue ON m.enviado_por = ue.id_usuario
             LEFT JOIN usuarios ur ON m.recibido_por = ur.id_usuario
+            LEFT JOIN documentos d on m.id_documento = d.id_documento
             WHERE m.id_documento = $1
             ORDER BY m.fecha_movimiento ASC
         `;

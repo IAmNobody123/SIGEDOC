@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, LogIn, Building2,  } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LogIn  } from 'lucide-react';
 import './Presentation.css';
 
 // Import images
@@ -50,10 +50,11 @@ export default function Presentation() {
       {/* Header / Nav */}
       <header className="presentation-header">
         <div className="logo-container">
-          <Building2 size={32} className="logo-icon" />
-          <span className="logo-text">SIGEDOC</span>
+          <span className="logo-text">
+            <img className="logo-img" src='./src/assets/OGAT.png' />
+          </span>
         </div>
-        <button className="login-btn" onClick={() => navigate('/login')}>
+        <button className="login-btn3" onClick={() => navigate('/login')}>
           <LogIn size={18} />
           <span>Ingresar al Sistema</span>
         </button>

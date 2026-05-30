@@ -30,17 +30,17 @@
 .sphere-1 {
   width: 500px;
   height: 500px;
-  background: var(--accent);
+  background: #ccda18;
   top: -100px;
   right: -100px;
 }
 
 .sphere-2 {
-  width: 400px;
-  height: 400px;
-  background: #4facfe;
-  bottom: -50px;
-  left: -100px;
+  width: 500px;
+  height: 500px;
+  background: #2b287e;
+  bottom: -10px;
+  left: -50px;
   animation-delay: -5s;
 }
 
@@ -71,13 +71,13 @@
   padding: 12px 20px;
   border-radius: 30px;
   transition: all 0.3s ease;
-  background: var(--accent);
+  background:#282b7e;
   backdrop-filter: blur(10px);
 }
 
 .back-button:hover {
-  background: var(--code-bg);
-  color: var(--text-h);
+  background: #ccda18;
+  color: #282b7e;
   transform: translateX(-5px);
 }
 
@@ -215,10 +215,11 @@
   text-decoration: underline;
 }
 
-.submit-btn {
+.submit-btn3{
   width: 100%;
   padding: 16px;
-  background: var(--accent);
+  background: #282b7e;
+  background-color:#282b7e;
   color: white;
   border: none;
   border-radius: 12px;

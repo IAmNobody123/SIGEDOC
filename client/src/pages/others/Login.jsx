@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Building2, ArrowLeft, Mail, Lock, LogIn } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, LogIn } from 'lucide-react';
 import './Login.css';
 import { useState } from 'react';
 import { login } from '../../conection/auth';
@@ -51,10 +51,8 @@ export default function Login() {
       <div className="login-container">
         <div className="login-card">
           <div className="login-header">
-            <div className="logo-icon-wrapper">
-              <Building2 size={32} />
-            </div>
-            <h2>Bienvenido a SIGEDOC</h2>
+            {/* <h2>Bienvenido a</h2> */}
+              <img className="logo-img" src='./src/assets/OGAT.png' />
             <p>Ingresa tus datos para acceder al sistema municipal.</p>
           </div>
 
@@ -96,7 +94,7 @@ export default function Login() {
               <a href="#" className="forgot-password">¿Olvidaste tu contraseña?</a>
             </div> */}
 
-            <button type="submit" className="submit-btn">
+            <button type="submit" className="submit-btn3">
               <LogIn size={20} />
               <span>Iniciar Sesión</span>
             </button>

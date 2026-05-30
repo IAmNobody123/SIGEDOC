@@ -20,23 +20,26 @@ export default function Documents() {
   const [reassignOpen, setReassignOpen] = useState(false);
   const [reassignDocument, setReassignDocument] = useState(null);
   const [unidades, setUnidades] = useState([]);
-  const [selectedUnidadDestino, setSelectedUnidadDestino] = useState("");
+  const [selectedUnidadDestino, setSelectedUnidadDestino] =
+    useState("");
   const [reassignLoading, setReassignLoading] = useState(false);
   const [reassignError, setReassignError] = useState("");
   const [reassignMessage, setReassignMessage] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
+  const [currentPageMovements, setCurrentPageMovements] = useState(1);
+  const [itemsPerPageMovements] = useState(5);
+  const [currentPageDocuments, setCurrentPageDocuments] = useState(1);
+  const [itemsPerPageDocuments] = useState(8);
 
-//   const loadDocuments = async () => {
-//     setLoading(true);
-//     const res = await fetchAllDocuments();
-//     if (res.success) {
-//       setDocuments(res.data);
-//     } else {
-//       setError(res.error || "Error al cargar documentos");
-//     }
-//     setLoading(false);
-//   };
+  //   const loadDocuments = async () => {
+  //     setLoading(true);
+  //     const res = await fetchAllDocuments();
+  //     if (res.success) {
+  //       setDocuments(res.data);
+  //     } else {
+  //       setError(res.error || "Error al cargar documentos");
+  //     }
+  //     setLoading(false);
+  //   };
 
   const handleViewDetails = async (document) => {
     setSelectedDocument(document);
@@ -54,7 +57,7 @@ export default function Documents() {
   const handleViewMovements = async (document) => {
     setSelectedDocument(document);
     setMovementsModalOpen(true);
-    setCurrentPage(1);
+    setCurrentPageMovements(1);
     setLoadingMovements(true);
 
     const res = await fetchDocumentMovements(document.id_documento);
@@ -76,7 +79,8 @@ export default function Documents() {
     setSelectedUnidadDestino("");
     setReassignError("");
     setReassignMessage("");
-    setCurrentPage(1);
+    setCurrentPageMovements(1);
+    setCurrentPageDocuments(1);
   };
 
   const openReassign = (document) => {
@@ -111,56 +115,70 @@ export default function Documents() {
       setSelectedUnidadDestino("");
       loadDocuments();
     } else {
-      setReassignError(res.error || "Error al reasignar el documento");
+      setReassignError(
+        res.error || "Error al reasignar el documento",
+      );
     }
   };
 
-  // Pagination logic
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentMovements = movements.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(movements.length / itemsPerPage);
+  const indexOfLastItem =
+    currentPageMovements * itemsPerPageMovements;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPageMovements;
+  const currentMovements = movements.slice(
+    indexOfFirstItem,
+    indexOfLastItem,
+  );
+  const totalPages = Math.ceil(
+    movements.length / itemsPerPageMovements,
+  );
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const paginate = (pageNumber) =>
+    setCurrentPageMovements(pageNumber);
 
-const loadDocuments = async () => {
-  try {
-    setLoading(true);
-    setError("");
+  const loadDocuments = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-    const res = await fetchAllDocuments();
+      const res = await fetchAllDocuments();
 
+      if (res.success) {
+        setDocuments(res.data);
+      } else {
+        setError(res.error || "Error al cargar documentos");
+      }
+    } catch {
+      setError("Error al cargar documentos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadUnidades = async () => {
+    const res = await fetchUnidades();
     if (res.success) {
-      setDocuments(res.data);
-    } else {
-      setError(res.error || "Error al cargar documentos");
+      setUnidades(res.data);
     }
-  } catch {
-    setError("Error al cargar documentos");
-  } finally {
-    setLoading(false);
-  }
-};
-
-const loadUnidades = async () => {
-  const res = await fetchUnidades();
-  if (res.success) {
-    setUnidades(res.data);
-  }
-};
-
-useEffect(() => {
-  const initialize = async () => {
-    await Promise.all([loadDocuments(), loadUnidades()]);
   };
 
-  initialize();
-}, []);
+  const formatEstado = (estado) =>
+    estado === "Pendiente_Aceptacion_Usuario"
+      ? "Esperando aceptacion"
+      : estado;
+
+  useEffect(() => {
+    const initialize = async () => {
+      await Promise.all([loadDocuments(), loadUnidades()]);
+    };
+
+    initialize();
+  }, []);
 
   const filteredDocuments = documents.filter((doc) => {
     const term = searchTerm.toLowerCase();
     return (
-      doc.nombre.toLowerCase().includes(term) ||
+      doc.nombregeneral.toLowerCase().includes(term) ||
+      doc.nombreinteresado.toLowerCase().includes(term) ||
       doc.tipo_documento?.toLowerCase().includes(term) ||
       doc.creador_nombre?.toLowerCase().includes(term) ||
       doc.creador_apellido?.toLowerCase().includes(term) ||
@@ -168,9 +186,29 @@ useEffect(() => {
     );
   });
 
+  const totalDocumentPages = Math.ceil(
+    filteredDocuments.length / itemsPerPageDocuments,
+  );
+
+  const currentPageDocumentsSafe = Math.min(
+    currentPageDocuments,
+    Math.max(totalDocumentPages, 1),
+  );
+
+  const indexOfLastDocument =
+    currentPageDocumentsSafe * itemsPerPageDocuments;
+  const indexOfFirstDocument =
+    indexOfLastDocument - itemsPerPageDocuments;
+  const currentDocuments = filteredDocuments.slice(
+    indexOfFirstDocument,
+    indexOfLastDocument,
+  );
+
+  const paginateDocuments = (pageNumber) =>
+    setCurrentPageDocuments(pageNumber);
+
   return (
     <div className="documents-container">
-
       <div className="search-container">
         <label htmlFor="documentSearch">Buscar documento:</label>
         <input
@@ -191,7 +229,8 @@ useEffect(() => {
           <thead>
             <tr>
               <th>Nro Expediente</th>
-              <th>Interesado</th>
+              <th>Nombre general</th>
+              <th>Persona interesada</th>
               <th>Tipo</th>
               <th>Estado</th>
               {/* <th>Creado por</th> */}
@@ -202,14 +241,25 @@ useEffect(() => {
             </tr>
           </thead>
           <tbody>
-            {filteredDocuments.map((doc) => (
+            {currentDocuments.map((doc) => (
               <tr key={doc.id_documento}>
-                <td>{doc.nro_expediente ? doc.nro_expediente : "No tiene"}</td>
-                <td>{doc.nombre}</td>
+                <td>
+                  {doc.nro_expediente
+                    ? doc.nro_expediente
+                    : "NO TIENE"}
+                </td>
+                <td>{doc.nombregeneral}</td>
+                <td>
+                  {doc.nombreinteresado
+                    ? doc.nombreinteresado
+                    : "NO TIENE"}
+                </td>
                 <td>{doc.tipo_documento}</td>
-                <td>{doc.estado_actual}</td>
+                <td>{formatEstado(doc.estado_actual)}</td>
                 {/* <td>{doc.creador_nombre} {doc.creador_apellido}</td> */}
-                <td>{new Date(doc.fecha_creacion).toLocaleDateString()}</td>
+                <td>
+                  {new Date(doc.fecha_creacion).toLocaleDateString()}
+                </td>
                 <td>{doc.unidad_actual_nombre}</td>
                 {/* <td>{doc.externo ? doc.descripcion_origen_externo : '-'}</td> */}
                 <td>
@@ -226,14 +276,17 @@ useEffect(() => {
                     >
                       Ver movimientos
                     </button>
-                    {doc.estado_actual && !["finalizado", "rechazado"].includes(doc.estado_actual.toLowerCase()) && (
-                      <button
-                        onClick={() => openReassign(doc)}
-                        className="reassign-btn"
-                      >
-                        Reasignar
-                      </button>
-                    )}
+                    {doc.estado_actual &&
+                      !["finalizado", "rechazado"].includes(
+                        doc.estado_actual.toLowerCase(),
+                      ) && (
+                        <button
+                          onClick={() => openReassign(doc)}
+                          className="reassign-btn"
+                        >
+                          Reasignar
+                        </button>
+                      )}
                   </div>
                 </td>
               </tr>
@@ -241,6 +294,34 @@ useEffect(() => {
           </tbody>
         </table>
       </div>
+
+      {totalDocumentPages > 1 && (
+        <div className="pagination documents-pagination">
+          <button
+            onClick={() =>
+              paginateDocuments(currentPageDocuments - 1)
+            }
+            disabled={currentPageDocuments === 1}
+            className="pagination-btn"
+          >
+            Anterior
+          </button>
+
+          <span className="pagination-info">
+            Página {currentPageDocuments} de {totalDocumentPages}
+          </span>
+
+          <button
+            onClick={() =>
+              paginateDocuments(currentPageDocuments + 1)
+            }
+            disabled={currentPageDocuments === totalDocumentPages}
+            className="pagination-btn"
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
 
       {modalOpen && (
         <div className="modal-overlay" onClick={closeModal}>
@@ -256,12 +337,13 @@ useEffect(() => {
                 <h2>Detalles del Documento</h2>
                 <div className="document-details-grid">
                   <div className="detail-column">
-                    <p>
+                    {/* <p>
                       <strong>ID:</strong>{" "}
                       {selectedDocument.id_documento}
-                    </p>
+                    </p> */}
                     <p>
-                      <strong>Nombre:</strong> {selectedDocument.nombre}
+                      <strong>Nombre:</strong>{" "}
+                      {selectedDocument.nombre}
                     </p>
                     <p>
                       <strong>Tipo:</strong>{" "}
@@ -288,6 +370,14 @@ useEffect(() => {
                       <strong>Unidad actual:</strong>{" "}
                       {selectedDocument.unidad_actual_nombre}
                     </p>
+                    {selectedDocument.externo && (
+                      <p>
+                        <strong>Fecha de creación:</strong>{" "}
+                        {new Date(
+                          selectedDocument.fechaingreso,
+                        ).toLocaleDateString()}{" "}
+                      </p>
+                    )}
                     {selectedDocument.externo && (
                       <p>
                         <strong>Origen externo:</strong>{" "}
@@ -321,46 +411,63 @@ useEffect(() => {
                   <strong>Nombre:</strong> {reassignDocument.nombre}
                 </p>
                 <p>
-                  <strong>Estado:</strong> {reassignDocument.estado_actual}
+                  <strong>Estado:</strong>{" "}
+                  {reassignDocument.estado_actual}
                 </p>
                 <p>
-                  <strong>Unidad actual:</strong> {reassignDocument.unidad_actual_nombre}
+                  <strong>Unidad actual:</strong>{" "}
+                  {reassignDocument.unidad_actual_nombre}
                 </p>
               </div>
               <div className="detail-column">
                 <p>
-                  <strong>Tipo:</strong> {reassignDocument.tipo_documento}
+                  <strong>Tipo:</strong>{" "}
+                  {reassignDocument.tipo_documento}
                 </p>
                 <p>
-                  <strong>Creado por:</strong> {reassignDocument.creador_nombre} {reassignDocument.creador_apellido}
+                  <strong>Creado por:</strong>{" "}
+                  {reassignDocument.creador_nombre}{" "}
+                  {reassignDocument.creador_apellido}
                 </p>
                 {reassignDocument.externo && (
                   <p>
-                    <strong>Origen externo:</strong> {reassignDocument.descripcion_origen_externo}
+                    <strong>Origen externo:</strong>{" "}
+                    {reassignDocument.descripcion_origen_externo}
                   </p>
                 )}
               </div>
             </div>
 
             <div className="reassign-section">
-              <label htmlFor="unidadDestino">Selecciona oficina destino</label>
+              <label htmlFor="unidadDestino">
+                Selecciona oficina destino
+              </label>
               <select
                 id="unidadDestino"
                 value={selectedUnidadDestino}
-                onChange={(e) => setSelectedUnidadDestino(e.target.value)}
+                onChange={(e) =>
+                  setSelectedUnidadDestino(e.target.value)
+                }
                 className="select-input"
               >
                 <option value="">-- Seleccionar oficina --</option>
                 {unidades.map((unidad) => (
-                  <option key={unidad.id_unidad} value={unidad.id_unidad}>
+                  <option
+                    key={unidad.id_unidad}
+                    value={unidad.id_unidad}
+                  >
                     {unidad.nombre}
                   </option>
                 ))}
               </select>
             </div>
 
-            {reassignError && <p className="error">{reassignError}</p>}
-            {reassignMessage && <p className="success">{reassignMessage}</p>}
+            {reassignError && (
+              <p className="error">{reassignError}</p>
+            )}
+            {reassignMessage && (
+              <p className="success">{reassignMessage}</p>
+            )}
 
             <div className="modal-actions">
               <button
@@ -368,9 +475,14 @@ useEffect(() => {
                 onClick={handleReassign}
                 disabled={reassignLoading}
               >
-                {reassignLoading ? "Reasignando..." : "Confirmar reasignación"}
+                {reassignLoading
+                  ? "Reasignando..."
+                  : "Confirmar reasignación"}
               </button>
-              <button className="view-movements-btn" onClick={closeModal}>
+              <button
+                className="view-movements-btn"
+                onClick={closeModal}
+              >
                 Cancelar
               </button>
             </div>
@@ -381,7 +493,7 @@ useEffect(() => {
       {movementsModalOpen && (
         <div className="modal-overlay" onClick={closeModal}>
           <div
-            className="modal-content"
+            className="modal-content-history-document"
             onClick={(e) => e.stopPropagation()}
           >
             <button className="close-modal" onClick={closeModal}>
@@ -389,7 +501,9 @@ useEffect(() => {
             </button>
             {selectedDocument && (
               <>
-                <h2>Movimientos del Documento: {selectedDocument.nombre}</h2>
+                <h2>
+                  Movimientos del Documento: {selectedDocument.nombre}
+                </h2>
                 {loadingMovements ? (
                   <p>Cargando movimientos...</p>
                 ) : movements.length > 0 ? (
@@ -403,20 +517,27 @@ useEffect(() => {
                             <th>De</th>
                             <th>A</th>
                             <th>Enviado por</th>
-                            <th>Recibido por</th>
+                            {/* <th>Recibido por</th> */}
                             <th>Observaciones</th>
                           </tr>
                         </thead>
                         <tbody>
                           {currentMovements.map((mov) => (
                             <tr key={mov.id_movimiento}>
-                              <td>{new Date(mov.fecha_movimiento).toLocaleString()}</td>
+                              <td>
+                                {new Date(
+                                  mov.fecha_movimiento,
+                                ).toLocaleString()}
+                              </td>
                               <td>{mov.estado}</td>
                               <td>{mov.unidad_origen_nombre}</td>
                               <td>{mov.unidad_destino_nombre}</td>
-                              <td>{mov.enviado_por_nombre} {mov.enviado_por_apellido}</td>
-                              <td>{mov.recibido_por_nombre ? `${mov.recibido_por_nombre} ${mov.recibido_por_apellido}` : '-'}</td>
-                              <td>{mov.observaciones || '-'}</td>
+                              <td>
+                                {mov.enviado_por_nombre}{" "}
+                                {mov.enviado_por_apellido}
+                              </td>
+                              {/* <td>{mov.recibido_por_nombre ? `${mov.recibido_por_nombre} ${mov.recibido_por_apellido}` : '-'}</td> */}
+                              <td>{mov.observaciones || "-"}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -426,20 +547,27 @@ useEffect(() => {
                     {totalPages > 1 && (
                       <div className="pagination">
                         <button
-                          onClick={() => paginate(currentPage - 1)}
-                          disabled={currentPage === 1}
+                          onClick={() =>
+                            paginate(currentPageMovements - 1)
+                          }
+                          disabled={currentPageMovements === 1}
                           className="pagination-btn"
                         >
                           Anterior
                         </button>
 
                         <span className="pagination-info">
-                          Página {currentPage} de {totalPages}
+                          Página {currentPageMovements} de{" "}
+                          {totalPages}
                         </span>
 
                         <button
-                          onClick={() => paginate(currentPage + 1)}
-                          disabled={currentPage === totalPages}
+                          onClick={() =>
+                            paginate(currentPageMovements + 1)
+                          }
+                          disabled={
+                            currentPageMovements === totalPages
+                          }
                           className="pagination-btn"
                         >
                           Siguiente
@@ -448,7 +576,10 @@ useEffect(() => {
                     )}
                   </>
                 ) : (
-                  <p>No hay movimientos registrados para este documento.</p>
+                  <p>
+                    No hay movimientos registrados para este
+                    documento.
+                  </p>
                 )}
               </>
             )}

@@ -1,14 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { fetchUserDocumentHistory, fetchDocumentMovements } from "../../conection/documents";
 import "./BandejaMovimientos.css";
 
 function BandejaMovimientos({ idUsuario }) {
   const [documentos, setDocumentos] = useState([]);
-  const [filteredDocumentos, setFilteredDocumentos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("Todos");
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedDocumento, setSelectedDocumento] = useState(null);
@@ -35,7 +36,7 @@ function BandejaMovimientos({ idUsuario }) {
     fetchHistorial();
   }, [idUsuario]);
 
-  useEffect(() => {
+  const filteredDocumentos = useMemo(() => {
     let result = documentos;
 
     if (filtroEstado === "Activos") {
@@ -53,7 +54,7 @@ function BandejaMovimientos({ idUsuario }) {
       );
     }
 
-    setFilteredDocumentos(result);
+    return result;
   }, [documentos, filtroEstado, searchTerm]);
 
   const handleViewDetails = async (documento) => {
@@ -76,6 +77,12 @@ function BandejaMovimientos({ idUsuario }) {
     setMovements([]);
   };
 
+  const totalPages = Math.max(1, Math.ceil(filteredDocumentos.length / itemsPerPage));
+  const currentPageSafe = Math.min(currentPage, totalPages);
+  const indexOfLastDocument = currentPageSafe * itemsPerPage;
+  const indexOfFirstDocument = indexOfLastDocument - itemsPerPage;
+  const currentDocumentos = filteredDocumentos.slice(indexOfFirstDocument, indexOfLastDocument);
+
   return (
     <div className="tramites-container">
       <div className="tramites-header">
@@ -85,13 +92,19 @@ function BandejaMovimientos({ idUsuario }) {
             type="text"
             placeholder="Buscar por interesado..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
             className="search-input"
             style={{ flex: 1 }}
           />
           <select
             value={filtroEstado}
-            onChange={(e) => setFiltroEstado(e.target.value)}
+            onChange={(e) => {
+              setFiltroEstado(e.target.value);
+              setCurrentPage(1);
+            }}
             style={{ padding: '8px', borderRadius: '4px', border: '1px solid #000' }}
           >
             <option value="Todos">Todos</option>
@@ -111,7 +124,7 @@ function BandejaMovimientos({ idUsuario }) {
           </p>
         )}
 
-        {filteredDocumentos.map((doc) => (
+        {currentDocumentos.map((doc) => (
           <div key={doc.id_documento} className="tramite-card">
             <div className="tramite-card-body">
               <h3>{doc.nombre}</h3>
@@ -143,6 +156,28 @@ function BandejaMovimientos({ idUsuario }) {
           </div>
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <div className="pagination documents-pagination" style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '20px' }}>
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="pagination-btn"
+          >
+            Anterior
+          </button>
+          <span className="pagination-info">
+            Página {currentPage} de {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="pagination-btn"
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
 
       {detailsOpen && selectedDocumento && (
         <div className="modal-overlay" onClick={closeDetails}>
