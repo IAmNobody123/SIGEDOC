@@ -177,8 +177,8 @@ export default function Documents() {
   const filteredDocuments = documents.filter((doc) => {
     const term = searchTerm.toLowerCase();
     return (
-      doc.nombregeneral.toLowerCase().includes(term) ||
-      doc.nombreinteresado.toLowerCase().includes(term) ||
+      doc.nombregeneral?.toLowerCase().includes(term) ||
+      doc.nombreinteresado?.toLowerCase().includes(term) ||
       doc.tipo_documento?.toLowerCase().includes(term) ||
       doc.creador_nombre?.toLowerCase().includes(term) ||
       doc.creador_apellido?.toLowerCase().includes(term) ||

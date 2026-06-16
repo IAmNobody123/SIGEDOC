@@ -210,6 +210,7 @@ function DocumentosPendientesAceptacion({ idUnidad }) {
               ×
             </button>
             <h2>Detalle del documento</h2>
+            {console.log("Documento seleccionado para detalles:", selectedDocumento)}
             <div className="detail-section">
               <h3>Información general</h3>
               <p>
@@ -234,6 +235,16 @@ function DocumentosPendientesAceptacion({ idUnidad }) {
                   "es-ES"
                 )}
               </p>
+              {
+                selectedDocumento.fecha_ingreso && (
+                  <p>
+                <strong>Fecha de ingreso manual:</strong>
+                 {new Date(selectedDocumento.fecha_ingreso).toLocaleDateString(
+                  "es-ES"
+                )}
+              </p>
+                )
+              }
               {selectedDocumento.descripcion_origen_externo && (
                 <p>
                   <strong>Lugar de creacion:</strong>{" "}

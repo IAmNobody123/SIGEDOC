@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   fetchPendingDocumentsByUnidad,
   fetchDocumentMovements,
@@ -25,6 +25,8 @@ function Tramites({ idUsuario, idUnidad }) {
   const [unidadFilter, setUnidadFilter] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [observacionesAssign, setObservacionesAssign] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 4;
 
   const loadTramites = async () => {
     setLoading(true);
@@ -171,16 +173,24 @@ useEffect(() => {
     }
   };
 
-  const filteredTramites = tramites.filter((doc) => {
-    const term = searchTerm.toLowerCase().trim();
-    return (
-      doc.nombre?.toLowerCase().includes(term) ||
-      doc.interesado?.toLowerCase().includes(term) ||
-      doc.tipo_documento?.toLowerCase().includes(term) ||
-      doc.creador_nombre?.toLowerCase().includes(term) ||
-      doc.creador_apellido?.toLowerCase().includes(term)
-    );
-  });
+  const filteredTramites = useMemo(() => {
+    return tramites.filter((doc) => {
+      const term = searchTerm.toLowerCase().trim();
+      return (
+        doc.nombre?.toLowerCase().includes(term) ||
+        doc.interesado?.toLowerCase().includes(term) ||
+        doc.tipo_documento?.toLowerCase().includes(term) ||
+        doc.creador_nombre?.toLowerCase().includes(term) ||
+        doc.creador_apellido?.toLowerCase().includes(term)
+      );
+    });
+  }, [tramites, searchTerm]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTramites.length / itemsPerPage));
+  const currentPageSafe = Math.min(currentPage, totalPages);
+  const indexOfLastTramite = currentPageSafe * itemsPerPage;
+  const indexOfFirstTramite = indexOfLastTramite - itemsPerPage;
+  const currentTramites = filteredTramites.slice(indexOfFirstTramite, indexOfLastTramite);
 
   return (
     <div className="tramites-container">
@@ -204,7 +214,7 @@ useEffect(() => {
         {filteredTramites.length === 0 && !loading && (
           <p className="tramites-info">No hay trámites pendientes para esta unidad.</p>
         )}
-        {filteredTramites.map((doc) => (
+        {currentTramites.map((doc) => (
           <div key={doc.id_documento} className="tramite-card">
             <div className="tramite-card-body">
               <h3>{doc.nombre}</h3>
@@ -246,9 +256,31 @@ useEffect(() => {
         ))}
       </div>
 
+      {totalPages > 1 && (
+        <div className="pagination tramites-pagination">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="pagination-btn"
+          >
+            Anterior
+          </button>
+          <span className="pagination-info">
+            Página {currentPage} de {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="pagination-btn"
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
+
       {detailsOpen && selectedDocumento && (
         <div className="modal-overlay" onClick={closeDetails}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content modal-centered" onClick={(e) => e.stopPropagation()}>
             <button className="close-modal" onClick={closeDetails}>
               ×
             </button>
@@ -297,7 +329,7 @@ useEffect(() => {
 
       {historyOpen && selectedDocumento && (
         <div className="modal-overlay2" onClick={closeHistory}>
-          <div className="modal-content2" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content2 modal-centered" onClick={(e) => e.stopPropagation()}>
             <button className="close-modal2" onClick={closeHistory}>
               ×
             </button>
@@ -342,7 +374,7 @@ useEffect(() => {
 
       {assignOpen && (
         <div className="modal-overlay" onClick={() => setAssignOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content modal-centered" onClick={(e) => e.stopPropagation()}>
             <button className="close-modal" onClick={() => setAssignOpen(false)}>
               ×
             </button>

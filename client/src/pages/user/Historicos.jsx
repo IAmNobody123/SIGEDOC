@@ -233,7 +233,7 @@ function Historicos({ idUsuario }) {
               )}
             </div>
             <div className="modal-actions">
-              <button className="btn-cancelar" onClick={closeDetails}>
+              <button className="btn-cancelar2" onClick={closeDetails}>
                 Cerrar
               </button>
             </div>
@@ -283,7 +283,7 @@ function Historicos({ idUsuario }) {
               <p>No hay movimientos registrados para este documento.</p>
             )}
             <div className="modal-actions">
-              <button className="btn-cancelar" onClick={closeHistory}>
+              <button className="btn-cancelar2" onClick={closeHistory}>
                 Cerrar
               </button>
             </div>

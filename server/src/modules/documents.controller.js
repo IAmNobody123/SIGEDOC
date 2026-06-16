@@ -133,7 +133,8 @@ const createInternalDocument = async (req, res) => {
             nombre,
             creado_por,
             unidad_destino,
-            'Derivado',
+            //'Derivado',
+            'Pendiente_Aceptacion_Usuario',
             false,
             id_tipo,
             nro_expediente || null
@@ -268,7 +269,8 @@ const getPendingAcceptanceDocumentsByUnidad = async (req, res) => {
                    d.id_documento, d.nombre, d.fecha_creacion, d.estado_actual, d.externo, d.descripcion_origen_externo,
                    t.nombre as tipo_documento, u.nombre as unidad_actual_nombre, d.unidad_actual,
                    us.nombre as creador_nombre, us.apellido as creador_apellido,
-                   u_origen.nombre as unidad_origen_nombre, m.unidad_origen, m.observaciones as observaciones_ultima_mov
+                   u_origen.nombre as unidad_origen_nombre, m.unidad_origen, m.observaciones as observaciones_ultima_mov,
+                   d.fecha_ingreso
             FROM documentos d
             LEFT JOIN tipos_documento t ON d.id_tipo = t.id_tipo
             LEFT JOIN unidades u ON d.unidad_actual = u.id_unidad
