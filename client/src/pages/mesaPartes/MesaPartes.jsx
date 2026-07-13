@@ -6,6 +6,7 @@ import {
   FilePlus,
   Bell,
   LogOut,
+  Clock,
   // Briefcase,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +15,7 @@ import "./MesaPartes.css";
 import GestionDocumentos from "./GestionDocumentos";
 import BandejaTramites from "./BandejaTramites";
 import BandejaMovimientos from "./BandejaMovimientos";
+import DocumentosPendienDA from "./DocumentoPendienDA";
 
 export default function MesaPartes() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -23,8 +25,6 @@ export default function MesaPartes() {
   const user = JSON.parse(localStorage.getItem("user"));
   const idUnidad = user ? user.id_unidad : null;
   const idUsuario = user ? user.id : null;
-
-
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -59,13 +59,28 @@ export default function MesaPartes() {
       case "notifications":
         return (
           <div className="mesapartes-content-panel slide-in">
-            <BandejaMovimientos idUnidad={idUnidad} idUsuario={idUsuario} />
+            <BandejaMovimientos
+              idUnidad={idUnidad}
+              idUsuario={idUsuario}
+            />
           </div>
         );
       case "bandeja":
         return (
           <div className="mesapartes-content-panel slide-in">
-            <BandejaTramites idUnidad={idUnidad} idUsuario={idUsuario} />
+            <BandejaTramites
+              idUnidad={idUnidad}
+              idUsuario={idUsuario}
+            />
+          </div>
+        );
+      case "pendientes":
+        return (
+          <div className="mesapartes-content-panel slide-in">
+            <DocumentosPendienDA
+              idUnidad={idUnidad}
+              idUsuario={idUsuario}
+            />
           </div>
         );
       default:
@@ -108,6 +123,10 @@ export default function MesaPartes() {
               <LayoutDashboard size={20} />
               {isSidebarOpen && <span>Dashboard</span>}
             </li> */}
+            <li className={activeTab === "pendientes" ? "active" : ""} onClick={() => setActiveTab("pendientes")}>
+              <Clock size={20} />
+              {isSidebarOpen && <span>Pendientes</span>}
+            </li>
             <li
               className={activeTab === "bandeja" ? "active" : ""}
               onClick={() => setActiveTab("bandeja")}
@@ -142,16 +161,19 @@ export default function MesaPartes() {
           <div className="topbar-spacer"></div>
           <div className="user-profile">
             <div className="user-info">
-              <span className="user-name">{user ? `${user.nombre} ${user.apellido}` : 'Usuario'}</span>
-              <span className="user-role">Encargado de Mesa de Partes</span>
+              <span className="user-name">
+                {user ? `${user.nombre} ${user.apellido}` : "Usuario"}
+              </span>
+              <span className="user-role">
+                Encargado de Mesa de Partes
+              </span>
             </div>
             <div className="avatar-circle">
               {user && user.imagen ? (
                 <img src={user.imagen} alt="Avatar" />
               ) : (
-                user?.nombre.charAt(0).toUpperCase() || 'U'
+                user?.nombre.charAt(0).toUpperCase() || "U"
               )}
-
             </div>
           </div>
         </header>
@@ -161,6 +183,6 @@ export default function MesaPartes() {
           {renderContent()}
         </div>
       </main>
-    </div >
+    </div>
   );
 }
